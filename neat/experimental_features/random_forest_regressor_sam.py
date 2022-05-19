@@ -1,6 +1,4 @@
-# 4/29/22
-
-# Look at BQSR features (read_group - categorical --> dummy encode OR use reference genome - read_attribute in pysam)
+# 5/19/22
 
 import io
 import os
@@ -206,40 +204,40 @@ y_pred = y_pred.reshape(32861, 1) # 3.125 hardcoded
 
 print(random_forest.score(y_test_array, y_pred))
 
-# # Cross-validation --> need to choose either k folds or grid search
+# Cross-validation --> need to choose either k folds or grid search
+
+# kfcv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=random_state)
 #
-# # kfcv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=random_state)
-# #
-# # gscv = GridSearchCV(estimator=random_forest, param_grid=param_grid, cv=5)
-# # gscv.fit(X_train, y_train)
-# # print(gscv.best_params_)
-#
-# # # Tuning
-#
-# # ### Hyperparameter investigation - number of samples, features, trees, tree depth
-#
-# # random_forest_tuning = RandomForestRegressor(random_state = SEED)
-# # param_grid = {
-# #    'n_estimators': [100, 200, 500],
-# #    'max_features': ['auto', 'sqrt', 'log2'],
-# #    'max_depth' : [4,5,6,7,8],
-# #    'criterion' :['mse', 'mae']
-# # }
-#
-# # # Bootstrapping/bagging
-#
-# # ?
-#
-# # # Testing and error metrics
-#
-# # random_forest = RandomForestRegressor(random_state = SEED)
-# # random_forest.fit(X_train, y_train)
-# # y_pred = random_forest.predict(X_test)
-# # print('MAE: ', mean_absolute_error(y_test, y_pred))
-# # print('MSE: ', mean_squared_error(y_test, y_pred))
-#
-# # # Generalizability - out-of-box score
-#
-# # random_forest_out_of_bag = RandomForestRegressor(oob_score=True)
-# # random_forest_out_of_bag.fit(X_train, y_train)
-# # print(random_forest_out_of_bag.oob_score_)
+# gscv = GridSearchCV(estimator=random_forest, param_grid=param_grid, cv=5)
+# gscv.fit(X_train, y_train)
+# print(gscv.best_params_)
+
+# # Tuning
+
+# ### Hyperparameter investigation - number of samples, features, trees, tree depth
+
+# random_forest_tuning = RandomForestRegressor(random_state = SEED)
+# param_grid = {
+#    'n_estimators': [100, 200, 500],
+#    'max_features': ['auto', 'sqrt', 'log2'],
+#    'max_depth' : [4,5,6,7,8],
+#    'criterion' :['mse', 'mae']
+# }
+
+# # Bootstrapping/bagging
+
+# ?
+
+# # Testing and error metrics
+
+# random_forest = RandomForestRegressor(random_state = SEED)
+# random_forest.fit(X_train, y_train)
+# y_pred = random_forest.predict(X_test)
+# print('MAE: ', mean_absolute_error(y_test, y_pred))
+# print('MSE: ', mean_squared_error(y_test, y_pred))
+
+# # Generalizability - out-of-box score
+
+# random_forest_out_of_bag = RandomForestRegressor(oob_score=True)
+# random_forest_out_of_bag.fit(X_train, y_train)
+# print(random_forest_out_of_bag.oob_score_)
