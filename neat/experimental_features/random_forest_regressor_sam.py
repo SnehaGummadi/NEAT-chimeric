@@ -20,17 +20,24 @@ from sklearn.ensemble import RandomForestRegressor
 
 # Take input SAM --> lists --> create pandas data frame
 
-bam_file = '/Users/keshavgandhi/Downloads/subsample_3.125.bam'
-sam_file = '/Users/keshavgandhi/Downloads/subsample_3.125.sam'
+bam_file = '/home/joshfactorial/Documents/neat_data/machine_learning_data/sixteenth.bam'
 
-file_to_parse = pysam.AlignmentFile(sam_file, check_sq=False)
+file_to_parse = pysam.AlignmentFile(bam_file, check_sq=False)
+
+print(file_to_parse.count())
+
+modulo = round(file_to_parse.count() / 100) + 1
 
 pos_list = []
 qual_list = []
 unmap_list = []
-
+i = 0
+j = 0
+print("Parsing file")
 for item in file_to_parse:
 
+    if item.is_unmapped:
+        continue
     # For reference
     sam_flag = item.flag
     my_ref = item.reference_id
@@ -59,6 +66,11 @@ for item in file_to_parse:
     qual_list.append(align_qual)
     unmap_list.append(unmap_mate)
     pos_list.append(ref_pos)
+    i += 1
+    if i % modulo == 0:
+        j += 10
+        print(f'{j}% complete', end='\r')
+print(f'100% complete')
 
 # Turn list (of lists) into a dataframe
 
