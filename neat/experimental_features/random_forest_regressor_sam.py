@@ -7,6 +7,7 @@ import statistics
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import pathlib
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
@@ -20,30 +21,59 @@ from sklearn.ensemble import RandomForestRegressor
 
 # Take input SAM --> lists --> create pandas data frame
 
-bam_file = '/home/joshfactorial/Documents/neat_data/machine_learning_data/sixteenth.bam'
+bam_file = '/home/joshfactorial/Documents/neat_data/machine_learning_data/thirtysecond.bam'
 
-file_to_parse = pysam.AlignmentFile(bam_file, check_sq=False)
+index = f'{bam_file}.bai'
 
-print(file_to_parse.count())
+if not pathlib.Path(index).exists():
+    print("No index found, creating one.")
+    pysam.index(bam_file)
 
-modulo = round(file_to_parse.count() / 100) + 1
+file_to_parse = pysam.AlignmentFile(bam_file, 'rb', check_sq=False)
+num_recs = file_to_parse.count()
+print(f'{num_recs} records to parse')
+
+modulo = round(num_recs / 9)
 
 pos_list = []
 qual_list = []
 unmap_list = []
+sam_flags = []
+tlens = []
+skips = []
 i = 0
 j = 0
+
+
+def print_update(number, factor, percent):
+    if number % factor == 0:
+        percent += 10
+        print(f'{percent}% complete', end='\r')
+    return percent
+
+
 print("Parsing file")
-for item in file_to_parse:
+for item in file_to_parse.fetch():
 
     if item.is_unmapped:
+        i += 1
+        j = print_update(i, modulo, j)
+        continue
+    if len(item.seq) != 249:
+        i += 1
+        j = print_update(i, modulo, j)
+        continue
+    if 'S' in item.cigarstring:
+        i += 1
+        j = print_update(i, modulo, j)
         continue
     # For reference
     sam_flag = item.flag
+    sam_flags.append(sam_flag)
     my_ref = item.reference_id
     mate_ref = item.next_reference_id
     my_tlen = abs(item.template_length)
-
+    tlens.append(my_tlen)
     # Mapping quality scores
     align_qual = item.query_alignment_qualities
 
@@ -67,10 +97,10 @@ for item in file_to_parse:
     unmap_list.append(unmap_mate)
     pos_list.append(ref_pos)
     i += 1
-    if i % modulo == 0:
-        j += 10
-        print(f'{j}% complete', end='\r')
+    j = print_update(i, modulo, j)
+
 print(f'100% complete')
+file_to_parse.close()
 
 # Turn list (of lists) into a dataframe
 
@@ -78,9 +108,6 @@ subsample_sam = pd.DataFrame(qual_list)
 
 # subsample_sam_test = subsample_sam[['average', 'unmap_mate', 50]]
 # subsample_sam_test = subsample_sam[['average', 50]]
-
-# subsample_sam = subsample_sam_test
-subsample_sam = subsample_sam.fillna(0)
 
 subsample_sam['unmap_mate'] = unmap_mate
 
