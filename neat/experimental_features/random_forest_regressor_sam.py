@@ -192,28 +192,32 @@ subsample_sam['read_group'] = read_group_data['read_group_3'] # first column onl
 
 ### Dependent variable - start with a single position being predicted by the metrics above
 
-# y = subsample_sam[5]
-y = subsample_sam[50]
-# y = y.fillna(0)
+subsample_sam = subsample_sam.fillna(0)
 
-print(y)
+y = subsample_sam[50]
 
 ### Dropping Y columns - need to figure out what columns to use!
 
-# X = subsample_sam.drop([5], axis=1)
-X = subsample_sam.drop([50], axis=1)
-# X = X.fillna(0)
+# X = subsample_sam.drop([50], axis=1)
+
+X = subsample_sam['read_group'] # temporary test 5/21
 
 ### May have to vary testing size
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-X_train = X_train.fillna(0)
-X_test = X_test.fillna(0)
-y_train = y_train.fillna(0)
-y_test = y_test.fillna(0)
-
 # Observe shape of data
+
+for i in [X_train, X_test, y_train, y_test]:
+    i = i.to_numpy()
+    i = i.reshape(1, -1)
+    print(type(i))
+    print(i.shape)
+
+# X_train.reshape(-1, 1) # temporary for testing 5/21/22
+# y_train.reshape(-1, 1) # temporary for testing 5/21/22
+# X_test.reshape(-1, 1) # temporary for testing 5/21/22
+# y_test.reshape(-1, 1) # temporary for testing 5/21/22
 
 print('Shape of original dataset:      ', subsample_sam.shape)
 print('Shape of input - training set:  ', X_train.shape)
@@ -251,9 +255,9 @@ print(random_forest.score(y_test_array, y_pred))
 # gscv.fit(X_train, y_train)
 # print(gscv.best_params_)
 
-# # Tuning
+# Tuning
 
-# ### Hyperparameter investigation - number of samples, features, trees, tree depth
+### Hyperparameter investigation - number of samples, features, trees, tree depth
 
 # random_forest_tuning = RandomForestRegressor(random_state = SEED)
 # param_grid = {
