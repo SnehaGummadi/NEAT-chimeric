@@ -1,4 +1,4 @@
-# 5/19/22
+# 5/23/22
 
 import io
 import os
@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 # Take input SAM --> lists --> create pandas data frame
 
-bam_file = '/home/joshfactorial/Documents/neat_data/machine_learning_data/thirtysecond.bam'
+bam_file = '/Users/keshavgandhi/Downloads/subsample_3.125.bam'
 
 index = f'{bam_file}.bai'
 
@@ -43,7 +43,6 @@ tlens = []
 skips = []
 i = 0
 j = 0
-
 
 def print_update(number, factor, percent):
     if number % factor == 0:
@@ -67,6 +66,7 @@ for item in file_to_parse.fetch():
         i += 1
         j = print_update(i, modulo, j)
         continue
+
     # For reference
     sam_flag = item.flag
     sam_flags.append(sam_flag)
@@ -198,9 +198,9 @@ y = subsample_sam[50]
 
 ### Dropping Y columns - need to figure out what columns to use!
 
-# X = subsample_sam.drop([50], axis=1)
+X = subsample_sam.drop([50], axis=1)
 
-X = subsample_sam['read_group'] # temporary test 5/21
+# X = subsample_sam['read_group'] # temporary test 5/21
 
 ### May have to vary testing size
 
@@ -210,14 +210,9 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 for i in [X_train, X_test, y_train, y_test]:
     i = i.to_numpy()
-    i = i.reshape(1, -1)
+    i = i.reshape(-1, 1)
     print(type(i))
     print(i.shape)
-
-# X_train.reshape(-1, 1) # temporary for testing 5/21/22
-# y_train.reshape(-1, 1) # temporary for testing 5/21/22
-# X_test.reshape(-1, 1) # temporary for testing 5/21/22
-# y_test.reshape(-1, 1) # temporary for testing 5/21/22
 
 print('Shape of original dataset:      ', subsample_sam.shape)
 print('Shape of input - training set:  ', X_train.shape)
@@ -243,7 +238,7 @@ y_pred = random_forest.predict(X_test)
 
 # y_pred = y_pred.reshape(65787, 1) # 6.25 hardcoded
 
-y_pred = y_pred.reshape(32861, 1) # 3.125 hardcoded
+y_pred = y_pred.reshape(7444, 1) # 3.125 hardcoded
 
 print(random_forest.score(y_test_array, y_pred))
 
