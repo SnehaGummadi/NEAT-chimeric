@@ -208,11 +208,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 # Observe shape of data
 
-for i in [X_train, X_test, y_train, y_test]:
-    i = i.to_numpy()
-    i = i.reshape(-1, 1)
-    print(type(i))
-    print(i.shape)
+# for i in [X_train, X_test, y_train, y_test]:
+#     i = i.to_numpy()
+#     i = i.reshape(-1, 1)
+#     print(type(i))
+#     print(i.shape)
 
 print('Shape of original dataset:      ', subsample_sam.shape)
 print('Shape of input - training set:  ', X_train.shape)
