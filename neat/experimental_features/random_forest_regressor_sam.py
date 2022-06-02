@@ -21,7 +21,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 # Take input SAM --> lists --> create pandas data frame
 
-bam_file = '/Users/keshavgandhi/Downloads/subsample_3.125.bam'
+# bam_file = '/Users/keshavgandhi/Downloads/subsample_3.125.bam'
+bam_file = "/home/joshfactorial/Documents/neat_data/machine_learning_data/thirtysecond.bam"
 
 index = f'{bam_file}.bai'
 
@@ -50,6 +51,18 @@ def print_update(number, factor, percent):
         print(f'{percent}% complete', end='\r')
     return percent
 
+output_header = file_to_parse.header
+read_groups = output_header['RG']
+
+# Each dictionary is a separate read group - physicality of reads on slide
+
+group_categories = {}
+
+for x, n in zip(read_groups, range(len(read_groups))):
+    group_categories.update({x['ID']: n + 1})
+
+categories_by_record = []
+
 
 print("Parsing file")
 for item in file_to_parse.fetch():
@@ -66,6 +79,10 @@ for item in file_to_parse.fetch():
         i += 1
         j = print_update(i, modulo, j)
         continue
+
+    group = item.get_tag('RG')  # get_tag is correct
+    current_category = group_categories[group]
+    categories_by_record.append(current_category)
 
     # For reference
     sam_flag = item.flag
@@ -109,10 +126,12 @@ subsample_sam = pd.DataFrame(qual_list)
 # subsample_sam_test = subsample_sam[['average', 'unmap_mate', 50]]
 # subsample_sam_test = subsample_sam[['average', 50]]
 
-subsample_sam['unmap_mate'] = unmap_mate
+# subsample_sam['unmap_mate'] = unmap_mate
+
+width = subsample_sam.shape[1]
 
 subsample_sam['sum'] = subsample_sam.sum(axis=1)
-subsample_sam['average'] = subsample_sam['sum'] / 100
+subsample_sam['average'] = subsample_sam['sum'] / width
 
 nucleotides = ['A', 'C', 'T', 'G']
 dinucs = [x + y for x in nucleotides for y in nucleotides]
@@ -120,27 +139,6 @@ dinucs = [x + y for x in nucleotides for y in nucleotides]
 dinuc_dict = {}
 for i in range(16):
     dinuc_dict[dinucs[i]] = i
-
-# Read group
-
-file_to_parse = pysam.AlignmentFile(bam_file, check_sq=False)
-
-output_header = file_to_parse.header
-read_groups = output_header['RG']
-
-# Each dictionary is a separate read group - physicality of reads on slide
-
-group_categories = {}
-
-for x, n in zip(read_groups, range(len(read_groups))):
-    group_categories.update({x['ID']: n + 1})
-
-categories_by_record = []
-
-for entry in file_to_parse:
-    group = entry.get_tag('RG') # get_tag is correct
-    current_category = group_categories[group]
-    categories_by_record.append(current_category)
 
 # For each BAM record --> assign and categorize by read group (1, 2, 3, or 4) --> throw out "no match" categories and
 # then convert to column in data frame
@@ -150,9 +148,9 @@ for entry in file_to_parse:
 
 read_group_data = pd.DataFrame(categories_by_record, columns=['read_group'])
 
-read_group_data = pd.get_dummies(data=read_group_data, prefix='read_group', columns=['read_group'], drop_first=False)
-
-subsample_sam['read_group'] = read_group_data['read_group_3'] # first column only - hardcoded because of dummy variable
+# read_group_data = pd.get_dummies(data=read_group_data, prefix='read_group', columns=['read_group'], drop_first=False)
+#
+# subsample_sam['read_group'] = read_group_data['read_group_3'] # first column only - hardcoded because of dummy variable
 # trap
 
 ### Examples
@@ -192,13 +190,17 @@ subsample_sam['read_group'] = read_group_data['read_group_3'] # first column onl
 
 ### Dependent variable - start with a single position being predicted by the metrics above
 
-subsample_sam = subsample_sam.fillna(0)
+# subsample_sam = subsample_sam.fillna(0)
 
-y = subsample_sam[50]
+subsample_sam_final = subsample_sam.T
 
+# grab a row
+y = subsample_sam_final.iloc[:,-1]
+
+### Drop row instead
 ### Dropping Y columns - need to figure out what columns to use!
 
-X = subsample_sam.drop([50], axis=1)
+X = subsample_sam_final.drop(subsample_sam_final.columns[[-1]], axis=1)
 
 # X = subsample_sam['read_group'] # temporary test 5/21
 
