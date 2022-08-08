@@ -223,8 +223,6 @@ print('MSE for testing data:', mse(y_test, ridge_model.predict(X_test)))
 
 VIF_results = [variance_inflation_factor(X.values, i) for i in range(len(X.columns))]
 print('VIF for input data:', VIF_results)
-VIF_results = [i for i in VIF_results]
-print('VIF average for input data:', sum(VIF_results) / len(VIF_results))
 
 # Plots
 
