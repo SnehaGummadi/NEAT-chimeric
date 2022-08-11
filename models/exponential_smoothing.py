@@ -3,6 +3,7 @@
 import io
 import os
 import pysam
+import math
 import statistics
 import datetime as dt
 import numpy as np
@@ -11,10 +12,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pathlib
 
-from sklearn.model_selection import train_test_split
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import RepeatedKFold
+from sklearn.metrics import mean_squared_error
 
 # Goal: use quality scores by position to predict next quality score at that position
 
@@ -103,13 +102,13 @@ subsample_sam = subsample_sam.set_axis(column_names, axis='columns', inplace=Fal
 ### Dependent variable - start with a single position being predicted by the metrics above
 
 subsample_sam = subsample_sam.dropna(axis=0)
-subsample_sam = subsample_sam.sample(frac=0.1, axis=0, random_state=42)
+sub_subsample_sam = subsample_sam.sample(frac=0.15, axis=0, random_state=42)
 
-means_for_smoothing = subsample_sam.mean()
+means_for_smoothing = sub_subsample_sam.mean()
 
 double_exp_model = ExponentialSmoothing(means_for_smoothing, trend='additive', damped_trend=True, seasonal=None).fit()
 
-yhat = double_exp_model.predict(0, len(subsample_sam.columns))
+yhat = double_exp_model.predict(0, len(sub_subsample_sam.columns) - 1)
 
 predictions = pd.DataFrame(yhat).set_index(yhat.index)
 predictions.columns = ['quality_scores']
@@ -131,10 +130,26 @@ predictions = predictions.transpose()
 column_names = list(np.arange(0, len(predictions.columns), 1))
 predictions = predictions.set_axis(column_names, axis='columns', inplace=False)
 
-predictions_repeat = pd.concat([predictions]*len(qual_list), ignore_index=True)
-print(predictions_repeat.shape)
+repeats = len(qual_list)
+predictions_repeat = pd.concat([predictions]*repeats, ignore_index=True)
 
 predicted_data = sns.heatmap(predictions_repeat, vmin=0, vmax=40, cmap='viridis', ax=ax2, cbar=False)
 predicted_data.set(xticks=[], yticks=[], xticklabels=[], yticklabels=[], xlabel='position along read', ylabel='reads')
 
+plt.show()
+
+residuals = np.subtract(subsample_sam, predictions_repeat)
+sns.heatmap(residuals, vmin=0, vmax=40, cmap='viridis')
+predicted_data.set(xticks=[], yticks=[], xticklabels=[], yticklabels=[], xlabel='position along read', ylabel='reads')
+plt.show()
+
+mse_scores = np.square(residuals).mean()
+rmse_scores = [math.sqrt(i) for i in mse_scores]
+norm_rmse_scores = [i / 40 for i in rmse_scores]
+
+sns.lineplot(data=mse_scores)
+sns.lineplot(data=rmse_scores)
+plt.show()
+
+sns.lineplot(data=norm_rmse_scores)
 plt.show()
