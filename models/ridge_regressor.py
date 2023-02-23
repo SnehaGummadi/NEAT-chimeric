@@ -1,3 +1,7 @@
+import cProfile
+import pstats
+import re
+
 import pysam
 import numpy as np
 import pandas as pd
@@ -165,7 +169,7 @@ def ridge_regressor(data_frame):
         # Define and fit ridge regressor
 
         # ridge_model = RidgeCV(alphas=np.arange(0, 1, 0.01), cv=cv, scoring='neg_mean_absolute_error')
-        ridge_model = RidgeCV(alphas=[0, 1, 0.1], cv=cv, scoring='neg_mean_absolute_error')
+        ridge_model = RidgeCV(alphas=np.arange(0.1, 1.0, 0.1), cv=cv, scoring='neg_mean_absolute_error')
         ridge_model = ridge_model.fit(X_train, y_train)
 
         test_r2 = ridge_model.score(X_test, y_test)
@@ -217,15 +221,29 @@ def plot_heatmap(y_preds_list, file_path):
 
     y_preds_list_df = pd.DataFrame(y_preds_list).transpose()
 
+    with open('/Users/keshavgandhi/Downloads/ridge_regressor_data.txt', 'w') as csv_file:
+        y_preds_list_df.to_csv(path_or_buf=csv_file) # temporary
+
     sns.heatmap(y_preds_list_df, vmin=0, vmax=40, cmap='viridis')
     plt.savefig(f'{file_path}')
+
+profiler = cProfile.Profile()
+profiler.enable()
 
 bam_file = '/Users/keshavgandhi/Downloads/subsample_3.125.bam'
 
 test_df = make_qual_score_list(bam_file)
 y_preds_test, mse_score_test, mse_score_train, r2_score_test, r2_score_train, cv_accuracies = ridge_regressor(test_df)
 
-plot_heatmap(y_preds_test, '/Users/keshavgandhi/Downloads/test.svg')
+profiler.dump_stats('/Users/keshavgandhi/PycharmProjects/NEAT/models/ridge_regressor.stats')
+profiler.disable()
+
+stats = pstats.Stats('/Users/keshavgandhi/PycharmProjects/NEAT/models/ridge_regressor.stats')
+stats.print_stats()
+stats.sort_stats('cumtime').print_stats(50)
+
+# save_metrics(mse_score_test, mse_score_train, r2_score_test, r2_score_train, cv_accuracies)
+# plot_heatmap(y_preds_test, '/Users/keshavgandhi/Downloads/ridge_regressor_results_a.svg')
 
 # if __name__ == '__main__':
 #     main()
