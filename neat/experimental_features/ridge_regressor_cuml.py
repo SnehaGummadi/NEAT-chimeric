@@ -313,7 +313,8 @@ def plot_heatmap(y_preds_list, file_path):
     print('Heatmap plotted')
 
 # bam_file = '/projects/neat/krg3/subsample.3.125.bam' # 18 seconds for 3.125, 24 seconds for 6.25, 32 seconds for 12.5, 55 seconds for 25, 89 seconds for 50, 189 seconds for full
-bam_file = '/projects/neat/krg3/normal_sample.6.25.bam' # 113 seconds for 3.125, 
+# bam_file = '/projects/neat/krg3/normal_sample.3.125.bam' # 113 seconds for 3.125, 246 seconds for 6.25, 460 seconds for 12.5, 900 seconds for 25, 1784 seconds for 50, 3451 seconds for full 
+bam_file = '/projects/neat/krg3/tumor_sample.3.125.bam' # 216 seconds for 3.125, 413 seconds for 6.25, 803 seconds for 12.5, 1667 seconds for 25, 3194 seconds for 50, 6920 seconds for full
 test_df = make_qual_score_list(bam_file)
 # y_preds_test, mse_score_test, mse_score_train = use_ridge_regressor(test_df)
 
