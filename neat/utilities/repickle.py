@@ -1,3 +1,4 @@
+<<<<<<< HEAD:neat/utilities/repickle.py
 #!/usr/bin/env python
 
 import glob
@@ -5,6 +6,13 @@ import os
 import pathlib
 import pickle
 import sys
+=======
+import sys
+import os
+import pathlib
+import glob
+import pickle
+>>>>>>> 217b611 (Random forest regressor.):utilities/repickle.py
 
 
 def main():
