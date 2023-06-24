@@ -26,7 +26,10 @@ import pybedtools
 import numpy as np
 import pickle
 from Bio import SeqIO
+<<<<<<< HEAD:neat/utilities/compute_gc.py
 >>>>>>> 217b611 (Random forest regressor.):utilities/compute_gc.py
+=======
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/compute_gc.py
 
 
 def process_fasta(file: str) -> dict:
@@ -162,8 +165,11 @@ def main():
 
     print('saving model...')
 <<<<<<< HEAD:neat/utilities/compute_gc.py
+<<<<<<< HEAD:neat/utilities/compute_gc.py
     pickle.dump([range(window_size + 1), y_out], gzip.open(out_p + ".pickle.gz", 'wb'))
 =======
+=======
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/compute_gc.py
     pickle.dump([range(window_size + 1), y_out], open(out_p, 'wb'))
 
 >>>>>>> 217b611 (Random forest regressor.):utilities/compute_gc.py

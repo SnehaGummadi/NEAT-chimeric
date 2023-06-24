@@ -48,6 +48,7 @@ Table of Contents
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Requirements (the most up-to-date requirements are found in the environment.yml file)
 
 * Python == 3.10.*
@@ -62,6 +63,8 @@ Table of Contents
 * pybedtools
 * frozendict
 =======
+=======
+>>>>>>> e8fcd95 (Random forest regressor.)
 
 
 ## Requirements
@@ -226,10 +229,14 @@ read-simulator command line options
 ## Functionality
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ![Diagram describing the way that genReads simulates datasets](docs/NEATNEAT.png "Diagram describing the way that gen_reads simulates datasets")
 =======
 ![Diagram describing the way that genReads simulates datasets](docs/flow_new.png "Diagram describing the way that genReads simulates datasets")
 >>>>>>> 217b611 (Random forest regressor.)
+=======
+![Diagram describing the way that genReads simulates datasets](docs/flow_new.png "Diagram describing the way that genReads simulates datasets")
+>>>>>>> e8fcd95 (Random forest regressor.)
 
 NEAT produces simulated sequencing datasets. It creates FASTQ files with reads sampled from a provided reference genome, using sequencing error rates and mutation rates learned from real sequencing data. The strength of NEAT lies in the ability for the user to customize many sequencing parameters, produce 'golden,' true positive datasets. We are working on expanding the functionality even further to model more species, generate larger variants, model tumor/normal data and more!
 
@@ -335,6 +342,7 @@ Simulate PacBio-like reads by providing an error model.
 
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 [contents of neat-config.yml]
 reference: hg19.fa
 read_len: 5000
@@ -345,6 +353,8 @@ neat read-simulator                 \
         -c neat_config.yml          \
         -o /home/me/simulated_reads
 =======
+=======
+>>>>>>> e8fcd95 (Random forest regressor.)
 python gen_reads.py                         \
 	-r hg19.fa                         \
 	-R 5000                            \
@@ -372,10 +382,14 @@ bedtools genomecov
 
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 neat compute_gc_bias                \
 =======
 python computeGC.py                 \
 >>>>>>> 217b611 (Random forest regressor.)
+=======
+python computeGC.py                 \
+>>>>>>> e8fcd95 (Random forest regressor.)
         -r reference.fa             \
         -i genomecovfile            \
         -w [sliding window length]  \
@@ -387,12 +401,16 @@ python computeGC.py                 \
 Computes empirical fragment length distribution from sample data.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     neat model-fraglen   \
         -i input.bam            \
         -o /prefix/for/output
 =======
     ./samtools view toy.bam | python computeFraglen.py
 >>>>>>> 217b611 (Random forest regressor.)
+=======
+    ./samtools view toy.bam | python computeFraglen.py
+>>>>>>> e8fcd95 (Random forest regressor.)
 
 and creates fraglen.p model in working directory.
 
@@ -402,16 +420,22 @@ Takes references genome and VCF file to generate mutation models:
 
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 neat gen-mut-model          \
         -r hg19.fa                  \
         -m inputVariants.vcf        \
         -o /home/me/models
 =======
+=======
+>>>>>>> e8fcd95 (Random forest regressor.)
 python genMutModel.py               \
         -r hg19.fa                  \
         -m inputVariants.tsv        \
         -o /home/me/models.p
+<<<<<<< HEAD
 >>>>>>> 217b611 (Random forest regressor.)
+=======
+>>>>>>> e8fcd95 (Random forest regressor.)
 ```
 
 Trinucleotides are identified in the reference genome and the variant file. Frequencies of each trinucleotide transition are calculated and output as a pickle (.p) file.
@@ -470,6 +494,7 @@ Performs plotting and comparison of mutation models generated from genMutModel.p
 
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 neat plot_mutation_model                                                \
         -i model1.pickle.gz [model2.pickle.gz] [model3.pickle.gz]...    \
         -l legend_label1 [legend_label2] [legend_label3]...             \
@@ -478,6 +503,11 @@ python plotMutModel.py                                        \
         -i model1.p [model2.p] [model3.p]...                  \
         -l legend_label1 [legend_label2] [legend_label3]...   \
 >>>>>>> 217b611 (Random forest regressor.)
+=======
+python plotMutModel.py                                        \
+        -i model1.p [model2.p] [model3.p]...                  \
+        -l legend_label1 [legend_label2] [legend_label3]...   \
+>>>>>>> e8fcd95 (Random forest regressor.)
         -o path/to/pdf_plot_prefix
 ```
 

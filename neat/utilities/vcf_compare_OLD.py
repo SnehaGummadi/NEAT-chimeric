@@ -16,6 +16,7 @@ Contact:		zstephe2@illinois.edu
 ************************************************** """
 
 <<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
+<<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
 import argparse
 import bisect
 import copy
@@ -31,6 +32,8 @@ from pathlib import Path
 import numpy as np
 from Bio.Seq import MutableSeq
 =======
+=======
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/vcf_compare_OLD.py
 import sys
 import copy
 import time
@@ -40,7 +43,10 @@ import numpy as np
 import argparse
 
 from Bio.Seq import Seq
+<<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
 >>>>>>> 217b611 (Random forest regressor.):utilities/vcf_compare_OLD.py
+=======
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/vcf_compare_OLD.py
 
 EV_BPRANGE = 50  # how far to either side of a particular variant location do we want to check for equivalents?
 
@@ -129,6 +135,7 @@ if (bedfile is not None and min_region_len is None) or (bedfile is None and min_
     sys.exit(1)
 
 <<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
+<<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
 ## DEBUG NOTE: enabled decompression of gzip vcf files automatically
 def gunzip_shutil(source_filepath, dest_filepath, block_size=65536):
     """
@@ -174,6 +181,8 @@ else:
 
 =======
 >>>>>>> 217b611 (Random forest regressor.):utilities/vcf_compare_OLD.py
+=======
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/vcf_compare_OLD.py
 if no_plot is False:
     import matplotlib
 
@@ -217,9 +226,12 @@ def parse_line(splt, col_dict, col_samp):
     alt_alleles = []
     alt_freqs = [None]
 <<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
+<<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
     
     #	any alternate alleles?
 =======
+=======
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/vcf_compare_OLD.py
 
     #	any alt alleles?
 >>>>>>> 217b611 (Random forest regressor.):utilities/vcf_compare_OLD.py
@@ -750,6 +762,7 @@ def main():
         vcfo2.close()
         vcfo3.close()
 <<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
+<<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
         ## Compress the FN output vcfs
         zipFN_vcf = FN_vcf + '.gz'
         gzip_shutil(FN_vcf, zipFN_vcf)
@@ -785,6 +798,9 @@ def main():
 =======
 
 >>>>>>> 217b611 (Random forest regressor.):utilities/vcf_compare_OLD.py
+=======
+
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/vcf_compare_OLD.py
     #
     #	plot some FN stuff
     #
@@ -823,6 +839,7 @@ def main():
         print(ouf)
         mpl.savefig(ouf)
 <<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
+<<<<<<< HEAD:neat/utilities/vcf_compare_OLD.py
     
     ##
     ##  Write results to a csv file_list
@@ -858,6 +875,9 @@ def main():
 =======
 
 >>>>>>> 217b611 (Random forest regressor.):utilities/vcf_compare_OLD.py
+=======
+
+>>>>>>> e8fcd95 (Random forest regressor.):utilities/vcf_compare_OLD.py
     #
     #	spit out results to console
     #
