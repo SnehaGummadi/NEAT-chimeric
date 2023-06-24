@@ -1,6 +1,6 @@
 # 2/11/21
 
-# Take results from random_forest_regressor.py
+# Take results from random_forest_regressor_vcf.py
 
 # from sklearn.tree import export_graphviz
 
