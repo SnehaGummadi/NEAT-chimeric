@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # The NEAT Project v4.0
 Welcome to the NEAT project, the NExt-generation sequencing Analysis Toolkit, version 4.0. This is our beta release of the newest version of NEAT. There is still lots of work to be done. See the [ChangeLog](ChangeLog.md) for notes.
 
@@ -7,6 +8,8 @@ NEAT's read-simulator is a fine-grained read simulator. It simulates real-lookin
 
 This is an pre-release v4.0 of the software. For a stable release, please see: [NEAT 3.0](https://github.com/ncsa/NEAT/releases/tag/3.3) (or check out older tagged releases)
 
+=======
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 # The NEAT Project v3.0
 Welcome to the NEAT project, the NExt-generation sequencing Analysis Toolkit, version 3.0. Neat has now been updated with Python 3, and is moving toward PEP8 standards. There is still lots of work to be done. See the [ChangeLog](ChangeLog.md) for notes.
 
@@ -49,6 +52,7 @@ Table of Contents
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## Requirements (the most up-to-date requirements are found in the environment.yml file)
 
 * Python == 3.10.*
@@ -65,6 +69,8 @@ Table of Contents
 =======
 =======
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 
 
 ## Requirements
@@ -230,6 +236,7 @@ read-simulator command line options
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 ![Diagram describing the way that genReads simulates datasets](docs/NEATNEAT.png "Diagram describing the way that gen_reads simulates datasets")
 =======
 ![Diagram describing the way that genReads simulates datasets](docs/flow_new.png "Diagram describing the way that genReads simulates datasets")
@@ -237,6 +244,9 @@ read-simulator command line options
 =======
 ![Diagram describing the way that genReads simulates datasets](docs/flow_new.png "Diagram describing the way that genReads simulates datasets")
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+![Diagram describing the way that genReads simulates datasets](docs/flow_new.png "Diagram describing the way that genReads simulates datasets")
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 
 NEAT produces simulated sequencing datasets. It creates FASTQ files with reads sampled from a provided reference genome, using sequencing error rates and mutation rates learned from real sequencing data. The strength of NEAT lies in the ability for the user to customize many sequencing parameters, produce 'golden,' true positive datasets. We are working on expanding the functionality even further to model more species, generate larger variants, model tumor/normal data and more!
 
@@ -343,6 +353,7 @@ Simulate PacBio-like reads by providing an error model.
 ```
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 [contents of neat-config.yml]
 reference: hg19.fa
 read_len: 5000
@@ -355,6 +366,8 @@ neat read-simulator                 \
 =======
 =======
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 python gen_reads.py                         \
 	-r hg19.fa                         \
 	-R 5000                            \
@@ -383,6 +396,7 @@ bedtools genomecov
 ```
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 neat compute_gc_bias                \
 =======
 python computeGC.py                 \
@@ -390,6 +404,9 @@ python computeGC.py                 \
 =======
 python computeGC.py                 \
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+python computeGC.py                 \
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
         -r reference.fa             \
         -i genomecovfile            \
         -w [sliding window length]  \
@@ -402,6 +419,7 @@ Computes empirical fragment length distribution from sample data.
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     neat model-fraglen   \
         -i input.bam            \
         -o /prefix/for/output
@@ -411,6 +429,9 @@ Computes empirical fragment length distribution from sample data.
 =======
     ./samtools view toy.bam | python computeFraglen.py
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+    ./samtools view toy.bam | python computeFraglen.py
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 
 and creates fraglen.p model in working directory.
 
@@ -421,6 +442,7 @@ Takes references genome and VCF file to generate mutation models:
 ```
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 neat gen-mut-model          \
         -r hg19.fa                  \
         -m inputVariants.vcf        \
@@ -428,14 +450,19 @@ neat gen-mut-model          \
 =======
 =======
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 python genMutModel.py               \
         -r hg19.fa                  \
         -m inputVariants.tsv        \
         -o /home/me/models.p
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 217b611 (Random forest regressor.)
 =======
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
 ```
 
 Trinucleotides are identified in the reference genome and the variant file. Frequencies of each trinucleotide transition are calculated and output as a pickle (.p) file.
@@ -495,6 +522,7 @@ Performs plotting and comparison of mutation models generated from genMutModel.p
 ```
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 neat plot_mutation_model                                                \
         -i model1.pickle.gz [model2.pickle.gz] [model3.pickle.gz]...    \
         -l legend_label1 [legend_label2] [legend_label3]...             \
@@ -508,6 +536,11 @@ python plotMutModel.py                                        \
         -i model1.p [model2.p] [model3.p]...                  \
         -l legend_label1 [legend_label2] [legend_label3]...   \
 >>>>>>> e8fcd95 (Random forest regressor.)
+=======
+python plotMutModel.py                                        \
+        -i model1.p [model2.p] [model3.p]...                  \
+        -l legend_label1 [legend_label2] [legend_label3]...   \
+>>>>>>> c06af9b1f9e0b444d635477af2d242d5ed551d7a
         -o path/to/pdf_plot_prefix
 ```
 
