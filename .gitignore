@@ -4,3 +4,6 @@
 /.ipynb_checkpoints/
 /.vscode/
 /.idea/
+/build
+/dist
+/NEAT.egg-info
