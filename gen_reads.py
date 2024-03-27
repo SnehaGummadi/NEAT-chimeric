@@ -613,7 +613,16 @@ def main(raw_args=None):
                 # insert variants
                 sequences.insert_mutations(vars_from_prev_overlap + vars_in_window)
                 all_inserted_variants = sequences.random_mutations()
-                # print all_inserted_variants
+                # print(all_inserted_variants)
+
+                # to track whether a TE insertion is present in this window
+                if vars_in_window is not None and vars_in_window != []:
+                    te_in_window = True
+                    if debug:
+                        print(vars_in_window)
+                else:
+                    te_in_window = False
+
 
                 # init coverage
                 if sum(coverage_dat[2]) >= low_cov_thresh:
@@ -714,6 +723,9 @@ def main(raw_args=None):
                             continue
 
                         my_read_name = out_prefix_name + '-' + ref_index[chrom][0] + '-' + str(read_name_count)
+                        # add that this read was sampled from a window where there is a TE insertion
+                        if te_in_window == True:
+                            my_read_name += '_variant-in-window'
                         read_name_count += len(my_read_data)
 
                         # if desired, replace all low-quality bases with Ns
