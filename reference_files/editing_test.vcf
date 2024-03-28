@@ -12,4 +12,4 @@
 ##ALT=<ID=INS:ME:L1,Description="Insertion of L1 element">
 ##ALT=<ID=INS:ME:SVA,Description="Insertion of SVA element">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-chr18_small 8568840 INS A   ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcccggctaaaacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtagtggcgggcgcctgtagtcccagctacttgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcccgccactgcactccagcctgggcgacagagcgagactccgtctcaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa .   PASS    SVTYPE=INS;END=8569152;SVLEN=311;CIPOS=-22,18;CIEND=-12,32
+chr18 8568840 INS A   ggccgggcgcggtggctcacgcctgtaatcccagcactttgggaggccgaggcgggcggatcacgaggtcaggagatcgagaccatcccggctaaaacggtgaaaccccgtctctactaaaaatacaaaaaattagccgggcgtagtggcgggcgcctgtagtcccagctacttgggaggctgaggcaggagaatggcgtgaacccgggaggcggagcttgcagtgagccgagatcccgccactgcactccagcctgggcgacagagcgagactccgtctcaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa .   PASS    SVTYPE=INS;END=8569152;SVLEN=311;CIPOS=-22,18;CIEND=-12,32
