@@ -488,6 +488,10 @@ class SequenceContainer:
                         self.black_list[p][k] = 1
                     self.indel_list[p].append(my_var)
 
+        # Get the indecies of the SVs from the vcf file           
+        SV_indecies = [t[0] for t in self.indel_list[0]]
+        return SV_indecies
+
     def random_mutations(self):
 
         # add random indels

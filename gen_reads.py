@@ -610,10 +610,13 @@ def main(raw_args=None):
                     sequences.update(start, ref_sequence[start:end], ploids, overlap, read_len, [mut_model] * ploids,
                                      mut_rate)
 
+                # hold the each SVs first index in this window
+                SV_index_win = []
                 # insert variants
-                sequences.insert_mutations(vars_from_prev_overlap + vars_in_window)
+                SV_index_win = sequences.insert_mutations(vars_in_window)
                 all_inserted_variants = sequences.random_mutations()
                 # print(all_inserted_variants)
+                # print(SV_index_win)
 
                 # to track whether a TE insertion is present in this window
                 if vars_in_window is not None and vars_in_window != []:
