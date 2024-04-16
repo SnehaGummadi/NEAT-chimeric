@@ -688,7 +688,7 @@ class SequenceContainer:
             output_variants[-1] += tuple(['WP=' + '/'.join(ploid_string)])
         return output_variants
 
-    def sample_read(self, sequencing_model, frag_len=None):
+    def sample_read(self, sequencing_model, frag_len=None, SV_index_in_win):
 
         # choose a ploid
         my_ploid = random.randint(0, self.ploidy - 1)
@@ -729,6 +729,12 @@ class SequenceContainer:
             (my_qual2, my_errors2) = sequencing_model.get_sequencing_errors(r_dat2, is_reverse_strand=True)
             reads_to_sample.append([r_pos1, my_qual1, my_errors1, r_dat1])
             reads_to_sample.append([r_pos2, my_qual2, my_errors2, r_dat2])
+            if (SV_index_in_win):
+                if(r_pos1 <= SV_index_in_win < r_pos1 + self.read_len):
+                    SV_in_read1 = True
+                if(r_pos2 <= SV_index_in_win < r_pos2 + self.read_len):
+                    SV_in_read1 = False
+                SV_in_read = True
 
         # error format:
         # myError[i] = (type, len, pos, ref, alt)
@@ -866,7 +872,7 @@ class SequenceContainer:
             read_out.append([self.fm_pos[my_ploid][read[0]], my_cigar, read[3], str(read[1])])
 
         # read_out[i] = (pos, cigar, read_string, qual_string)
-        return read_out
+        return read_out, SV_in_read, SV_in_read1
 
 
 class ReadContainer:
