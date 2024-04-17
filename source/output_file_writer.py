@@ -92,7 +92,7 @@ BUFFER_BATCH_SIZE = 8000  # write out to file after this many reads
 # TODO find a better way to write output files
 class OutputFileWriter:
     def __init__(self, out_prefix, paired=False, bam_header=None, vcf_header=None,
-                 no_fastq=False, fasta_instead=False):
+                 no_fastq=False, fasta_instead=False, add_to_chim_fq=False):
 
         self.fasta_instead = fasta_instead
         # TODO Eliminate paired end as an option for fastas. Plan is to create a write fasta method.
@@ -102,6 +102,8 @@ class OutputFileWriter:
         else:
             fq1 = pathlib.Path(out_prefix + '_read1.fq.gz')
             fq2 = pathlib.Path(out_prefix + '_read2.fq.gz')
+            chim_fq1 = pathlib.Path(out_prefix + 'chim_read1.fq.gz')
+            chim_fq2 = pathlib.Path(out_prefix + 'chim_read2.fq.gz')
         bam = pathlib.Path(out_prefix + '_golden.bam')
         vcf = pathlib.Path(out_prefix + '_golden.vcf.gz')
 
@@ -113,6 +115,10 @@ class OutputFileWriter:
             self.fq2_file = None
             if paired:
                 self.fq2_file = bgzf.open(fq2, 'w')
+            
+            if add_to_chim_fq:
+                self.chim_fq1_file = bgzf.open(chim_fq1, 'w')
+                self.chim_fq2_file = bgzf.open(chim_fq2, 'w')
 
         # VCF OUTPUT
         self.vcf_file = None
@@ -173,11 +179,13 @@ class OutputFileWriter:
         # buffers for more efficient writing
         self.fq1_buffer = []
         self.fq2_buffer = []
+        self.chim_fq1_buffer = []
+        self.chim_fq2_buffer = []
         self.bam_buffer = []
 
     # TODO add write_fasta_record
 
-    def write_fastq_record(self, read_name, read1, qual1, read2=None, qual2=None, orientation=None):
+    def write_fastq_record(self, read_name, read1, qual1, read2=None, qual2=None, orientation=None, add_to_chim_fq=False):
         # Since read1 and read2 are Seq objects from Biopython, they have reverse_complement methods built-in
         (read1, quality1) = (read1, qual1)
         if read2 is not None and orientation is True:
@@ -192,10 +200,15 @@ class OutputFileWriter:
             self.fq1_buffer.append('>' + read_name + '/1\n' + str(read1) + '\n')
             if read2 is not None:
                 self.fq2_buffer.append('>' + read_name + '/2\n' + str(read2) + '\n')
-        else:
+        else if add_to_chim_fq is False:
             self.fq1_buffer.append('@' + read_name + '/1\n' + str(read1) + '\n+\n' + quality1 + '\n')
             if read2 is not None:
                 self.fq2_buffer.append('@' + read_name + '/2\n' + str(read2) + '\n+\n' + quality2 + '\n')
+        else if add_to_chim_fq is True:
+            self.chim_fq1_buffer.append('@' + read_name + '/1\n' + str(read1) + '\n+\n' + quality1 + '\n')
+            if read2 is not None:
+                self.chim_fq2_buffer.append('@' + read_name + '/2\n' + str(read2) + '\n+\n' + quality2 + '\n')
+
 
     def write_vcf_record(self, chrom, pos, id_str, ref, alt, qual, filt, info):
         self.vcf_file.write(
@@ -290,6 +303,10 @@ class OutputFileWriter:
                 self.fq1_file.write(''.join(self.fq1_buffer))
                 if len(self.fq2_buffer):
                     self.fq2_file.write(''.join(self.fq2_buffer))
+                if len(self.chim_fq1_buffer):
+                    self.chim_fq1_file.write(''.join(self.chim_fq1_buffer))
+                if len(self.chim_fq2_buffer):
+                    self.chim_fq2_file.write(''.join(self.chim_fq2_buffer))
             # bam
             if len(self.bam_buffer):
                 bam_data = sorted(self.bam_buffer)
@@ -314,6 +331,8 @@ class OutputFileWriter:
                         self.bam_buffer = bam_data[ind_to_stop_at:]
             self.fq1_buffer = []
             self.fq2_buffer = []
+            self.chim_fq1_buffer = []
+            self.chim_fq2_buffer = []
 
     def close_files(self):
         self.flush_buffers(last_time=True)
@@ -321,6 +340,10 @@ class OutputFileWriter:
             self.fq1_file.close()
             if self.fq2_file is not None:
                 self.fq2_file.close()
+            if self.chim_fq1_file is not None:
+                self.chim_fq1_file.close()
+            if self.chim_fq2_file is not None:
+                self.chim_fq2_file.close()
         if self.vcf_file is not None:
             self.vcf_file.close()
         if self.bam_file is not None:
