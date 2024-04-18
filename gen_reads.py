@@ -613,18 +613,19 @@ def main(raw_args=None):
                 # hold the each SVs first index in this window, to reset info in SV_index_in_win for next iteration
                 SV_index_in_win = []
                 # insert variants
+                #print(vars_in_window)
                 SV_index_in_win = sequences.insert_mutations(vars_in_window)
                 all_inserted_variants = sequences.random_mutations()
                 # print(all_inserted_variants)
-                # print(SV_index_in_win)
-
-                # to track whether a TE insertion is present in this window
+                
+                # to track whether an SV insertion is present in this window
                 if vars_in_window is not None and vars_in_window != []:
-                    te_in_window = True
+                    SV_in_window = True
                     if debug:
-                        print(vars_in_window)
+                        #print(vars_in_window)
+                        #print(SV_index_in_win)
                 else:
-                    te_in_window = False
+                    SV_in_window = False
 
 
                 # init coverage
@@ -680,11 +681,13 @@ def main(raw_args=None):
                         # set that a structural variant is present in read to false for 
                         #       the new read being created in the window
                         SV_in_read = False
+                        SV_in_read1 = False
+                        SV_in_read2 = False
 
                         is_unmapped = []
                         if paired_end:
                             my_fraglen = fraglen_distribution.sample()
-                            my_read_data, SV_in_read, SV_in_read1 = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
+                            my_read_data, SV_in_read, SV_in_read1, SV_in_read2 = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
                             # skip if we failed to find a valid position to sample read
                             if my_read_data is None:
                                 continue
@@ -731,14 +734,14 @@ def main(raw_args=None):
 
                         my_read_name = out_prefix_name + '-' + ref_index[chrom][0] + '-' + str(read_name_count)
                         # add that this read was sampled from a window where there is a TE insertion
-                        if te_in_window == True:
+                        if SV_in_window == True:
                             my_read_name += '_variant-in-window'
                             # add that this read includes the SV insertion (I can't guarantee it is in read 1 and read 2)
                             if SV_in_read is True:
                                 my_read_name += '_SV-present'
                                 if SV_in_read1 is True:
                                     my_read_name += '-in-read1'
-                                else:
+                                if SV_in_read2 is True:
                                     my_read_name += '-in-read2'
                         read_name_count += len(my_read_data)        
 
@@ -801,11 +804,45 @@ def main(raw_args=None):
                         # write PE output
                         elif len(my_read_data) == 2:
                             if no_fastq is not True:
-                                output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
-                                                                      my_read_data[0][3],
-                                                                      read2=my_read_data[1][2],
-                                                                      qual2=my_read_data[1][3],
-                                                                      orientation=is_forward)
+                                if (SV_in_read is True):
+                                    output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
+                                                                        my_read_data[0][3],
+                                                                        read2=my_read_data[1][2],
+                                                                        qual2=my_read_data[1][3],
+                                                                        orientation=is_forward,
+                                                                        add_to_chim_fq=True)
+                                # should the SV be in the window for the read to be selcted to be added to chim file? 
+                                elif (SV_in_window is True):
+                                    # no SV in the read but SV in the window
+                                    # randomly select if the read will be included in the chim file
+                                    rannum = random.randint(1,15)
+                                    # what is a good percent of non-SV containing reads to send to chim file?
+                                    #       ^ currently >7% chance of this non-SV containing SV being sent to chim file.
+                                    #       TODO seems to be too much
+                                    if rannum == 1:
+                                        output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
+                                                                        my_read_data[0][3],
+                                                                        read2=my_read_data[1][2],
+                                                                        qual2=my_read_data[1][3],
+                                                                        orientation=is_forward,
+                                                                        add_to_chim_fq=True)
+                                        reads_to_sample += 1
+                                    else:
+                                        output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
+                                                                        my_read_data[0][3],
+                                                                        read2=my_read_data[1][2],
+                                                                        qual2=my_read_data[1][3],
+                                                                        orientation=is_forward,
+                                                                        add_to_chim_fq=False)
+                                else:
+                                    # no SV in the window
+                                    output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
+                                                                        my_read_data[0][3],
+                                                                        read2=my_read_data[1][2],
+                                                                        qual2=my_read_data[1][3],
+                                                                        orientation=is_forward,
+                                                                        add_to_chim_fq=False)
+
                             if save_bam:
                                 if is_unmapped[0] is False and is_unmapped[1] is False:
                                     if is_forward:
