@@ -488,9 +488,16 @@ class SequenceContainer:
                         self.black_list[p][k] = 1
                     self.indel_list[p].append(my_var)
 
-        # Get the indecies of the SVs from the vcf file           
-        SV_indecies = [t[0] for t in self.indel_list[0]]
-        return SV_indecies
+        if(input_list != []):
+            # Get the indecies of the SVs from the vcf file
+            #print(self.indel_list)         
+            non_empty = list(filter(lambda arr: arr, self.indel_list))
+            #print(non_empty)
+            SV_index_len = [list(non_empty[0])[0][0], len(list(non_empty[0])[0][2])]
+            #print(SV_index_len)
+        else:
+            SV_index_len = []
+        return SV_index_len
 
     def random_mutations(self):
 
@@ -688,7 +695,12 @@ class SequenceContainer:
             output_variants[-1] += tuple(['WP=' + '/'.join(ploid_string)])
         return output_variants
 
-    def sample_read(self, sequencing_model, frag_len=None, SV_index_in_win):
+    def sample_read(self, sequencing_model, frag_len=None, SV_index_in_win=None):
+
+        # set location of SV to false
+        SV_in_read = False
+        SV_in_read1 = False
+        SV_in_read2 = False
 
         # choose a ploid
         my_ploid = random.randint(0, self.ploidy - 1)
@@ -729,11 +741,11 @@ class SequenceContainer:
             (my_qual2, my_errors2) = sequencing_model.get_sequencing_errors(r_dat2, is_reverse_strand=True)
             reads_to_sample.append([r_pos1, my_qual1, my_errors1, r_dat1])
             reads_to_sample.append([r_pos2, my_qual2, my_errors2, r_dat2])
-            if (SV_index_in_win):
-                if(r_pos1 <= SV_index_in_win < r_pos1 + self.read_len):
+            if (SV_index_in_win is not None and SV_index_in_win != []):
+                if(max(r_pos1, SV_index_in_win[0]) <= min(r_pos1+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
                     SV_in_read1 = True
-                if(r_pos2 <= SV_index_in_win < r_pos2 + self.read_len):
-                    SV_in_read1 = False
+                if(max(r_pos2, SV_index_in_win[0]) <= min(r_pos2+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
+                    SV_in_read2 = True
                 SV_in_read = True
 
         # error format:
@@ -872,7 +884,7 @@ class SequenceContainer:
             read_out.append([self.fm_pos[my_ploid][read[0]], my_cigar, read[3], str(read[1])])
 
         # read_out[i] = (pos, cigar, read_string, qual_string)
-        return read_out, SV_in_read, SV_in_read1
+        return read_out, SV_in_read, SV_in_read1, SV_in_read2
 
 
 class ReadContainer:
