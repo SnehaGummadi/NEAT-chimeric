@@ -116,9 +116,8 @@ class OutputFileWriter:
             if paired:
                 self.fq2_file = bgzf.open(fq2, 'w')
             
-            if add_to_chim_fq:
-                self.chim_fq1_file = bgzf.open(chim_fq1, 'w')
-                self.chim_fq2_file = bgzf.open(chim_fq2, 'w')
+            self.chim_fq1_file = bgzf.open(chim_fq1, 'w')
+            self.chim_fq2_file = bgzf.open(chim_fq2, 'w')
 
         # VCF OUTPUT
         self.vcf_file = None
@@ -200,11 +199,11 @@ class OutputFileWriter:
             self.fq1_buffer.append('>' + read_name + '/1\n' + str(read1) + '\n')
             if read2 is not None:
                 self.fq2_buffer.append('>' + read_name + '/2\n' + str(read2) + '\n')
-        else if add_to_chim_fq is False:
+        elif add_to_chim_fq is False:
             self.fq1_buffer.append('@' + read_name + '/1\n' + str(read1) + '\n+\n' + quality1 + '\n')
             if read2 is not None:
                 self.fq2_buffer.append('@' + read_name + '/2\n' + str(read2) + '\n+\n' + quality2 + '\n')
-        else if add_to_chim_fq is True:
+        elif add_to_chim_fq is True:
             self.chim_fq1_buffer.append('@' + read_name + '/1\n' + str(read1) + '\n+\n' + quality1 + '\n')
             if read2 is not None:
                 self.chim_fq2_buffer.append('@' + read_name + '/2\n' + str(read2) + '\n+\n' + quality2 + '\n')
