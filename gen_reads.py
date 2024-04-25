@@ -621,7 +621,7 @@ def main(raw_args=None):
                 # to track whether an SV insertion is present in this window
                 if vars_in_window is not None and vars_in_window != []:
                     SV_in_window = True
-                    if debug:
+                    #if debug:
                         #print(vars_in_window)
                         #print(SV_index_in_win)
                 else:
@@ -681,13 +681,12 @@ def main(raw_args=None):
                         # set that a structural variant is present in read to false for 
                         #       the new read being created in the window
                         SV_in_read = False
-                        SV_in_read1 = False
-                        SV_in_read2 = False
+                        SV_pos_relative_to_read = 0
 
                         is_unmapped = []
                         if paired_end:
                             my_fraglen = fraglen_distribution.sample()
-                            my_read_data, SV_in_read, SV_in_read1, SV_in_read2 = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
+                            my_read_data, SV_in_read, SV_pos_relative_to_read = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
                             # skip if we failed to find a valid position to sample read
                             if my_read_data is None:
                                 continue
@@ -736,14 +735,24 @@ def main(raw_args=None):
                         # add that this read was sampled from a window where there is a TE insertion
                         if SV_in_window == True:
                             my_read_name += '_variant-in-window'
-                            # add that this read includes the SV insertion (I can't guarantee it is in read 1 and read 2)
+                            # add that this read includes the SV insertion
                             if SV_in_read is True:
-                                my_read_name += '_SV-present'
-                                if SV_in_read1 is True:
-                                    my_read_name += '-in-read1'
-                                if SV_in_read2 is True:
+                                my_read_name += '_SV-present' 
+                                if SV_pos_relative_to_read == 2:
+                                    my_read_name += '-in-read1' 
+                                if SV_pos_relative_to_read == 4:
                                     my_read_name += '-in-read2'
-                        read_name_count += len(my_read_data)        
+                                if SV_pos_relative_to_read == 6:
+                                    my_read_name += '-in-read-1-and-2'
+                            
+                            if SV_pos_relative_to_read == 1:
+                                    my_read_name += '-left-of-read-1'
+                            if SV_pos_relative_to_read == 3:
+                                    my_read_name += '-right-of-read-1-and-left-of-read-2'
+                            if SV_pos_relative_to_read == 5:
+                                    my_read_name += '-right-of-read-2'
+                        read_name_count += len(my_read_data)
+
 
                         # if desired, replace all low-quality bases with Ns
                         if n_max_qual > -1:
@@ -815,7 +824,7 @@ def main(raw_args=None):
                                 elif (SV_in_window is True):
                                     # no SV in the read but SV in the window
                                     # randomly select if the read will be included in the chim file
-                                    rannum = random.randint(1,15)
+                                    rannum = random.randint(1,100)
                                     # what is a good percent of non-SV containing reads to send to chim file?
                                     #       ^ currently >7% chance of this non-SV containing SV being sent to chim file.
                                     #       TODO seems to be too much
