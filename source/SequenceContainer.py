@@ -699,6 +699,9 @@ class SequenceContainer:
 
         # set location of SV to false
         SV_in_read = False
+        SV_pos_relative_to_read = 0
+        SV_span_read1 = False
+        SV_span_read2 = False
 
         # choose a ploid
         my_ploid = random.randint(0, self.ploidy - 1)
@@ -740,6 +743,9 @@ class SequenceContainer:
             reads_to_sample.append([r_pos1, my_qual1, my_errors1, r_dat1])
             reads_to_sample.append([r_pos2, my_qual2, my_errors2, r_dat2])
 
+            # SV_index_in_win[0] = the SV's index within the window
+            # SV_index_in_win[1] = length of the SV
+
             # SV_pos_relative_to_read
             # 0 = SV not in window
             # 1 = SV is entirely to the left of read 1
@@ -748,21 +754,26 @@ class SequenceContainer:
             # 4 = SV is entirely or partially within read 2
             # 5 = SV is entirely to the right of read 2
             # 6 = SV is present entirely or partially present in both read 1 and read 2
-            # TODO Double check logic on testing_testing.ipynb
+
             # TODO Ensure the distance for read is far enough from SV
+            #       trying at least 500 bases away
 
             if (SV_index_in_win is not None and SV_index_in_win != []):
-                if(SV_index_in_win[0]+SV_index_in_win[1] < r_pos1):
+                if(SV_index_in_win[0]+SV_index_in_win[1]+500 < r_pos1):
                     SV_pos_relative_to_read = 1
                 if(max(r_pos1, SV_index_in_win[0]) <= min(r_pos1+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
                     SV_pos_relative_to_read = 2
                     SV_in_read = True
+                    if(r_pos1 >= SV_index_in_win[0] and r_pos1+self.read_len < SV_index_in_win[0]+SV_index_in_win[1]):
+                        SV_span_read1 = True
                 if(r_pos1+self.read_len < SV_index_in_win[0] and SV_index_in_win[0]+SV_index_in_win[1] < r_pos2):
                     SV_pos_relative_to_read = 3
                 if(max(r_pos2, SV_index_in_win[0]) <= min(r_pos2+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
                     SV_pos_relative_to_read = 4
                     SV_in_read = True
-                if(SV_index_in_win[0] > r_pos2+self.read_len):
+                    if(r_pos2 >= SV_index_in_win[0] and r_pos2+self.read_len < SV_index_in_win[0]+SV_index_in_win[1]):
+                        SV_span_read2 = True
+                if(SV_index_in_win[0] > r_pos2+self.read_len+500):
                     SV_pos_relative_to_read = 5
                 if(max(r_pos1, SV_index_in_win[0]) <= min(r_pos1+self.read_len, SV_index_in_win[0]+SV_index_in_win[1]) and
                     max(r_pos2, SV_index_in_win[0]) <= min(r_pos2+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
@@ -907,7 +918,7 @@ class SequenceContainer:
             read_out.append([self.fm_pos[my_ploid][read[0]], my_cigar, read[3], str(read[1])])
 
         # read_out[i] = (pos, cigar, read_string, qual_string)
-        return read_out, SV_in_read, SV_pos_relative_to_read
+        return read_out, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2
 
 
 class ReadContainer:

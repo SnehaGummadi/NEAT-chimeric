@@ -682,11 +682,13 @@ def main(raw_args=None):
                         #       the new read being created in the window
                         SV_in_read = False
                         SV_pos_relative_to_read = 0
+                        SV_span_read1 = False
+                        SV_span_read2 = False
 
                         is_unmapped = []
                         if paired_end:
                             my_fraglen = fraglen_distribution.sample()
-                            my_read_data, SV_in_read, SV_pos_relative_to_read = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
+                            my_read_data, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2 = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
                             # skip if we failed to find a valid position to sample read
                             if my_read_data is None:
                                 continue
@@ -739,10 +741,18 @@ def main(raw_args=None):
                             if SV_in_read is True:
                                 my_read_name += '_SV-present' 
                                 if SV_pos_relative_to_read == 2:
+                                    if SV_span_read1 == True:
+                                        my_read_name += '-span'
                                     my_read_name += '-in-read1' 
                                 if SV_pos_relative_to_read == 4:
+                                    if SV_span_read2 == True:
+                                        my_read_name += '-span'
                                     my_read_name += '-in-read2'
                                 if SV_pos_relative_to_read == 6:
+                                    if SV_span_read1 == True:
+                                        my_read_name += '-span1'
+                                    if SV_span_read2 == True:
+                                        my_read_name += '-span2'
                                     my_read_name += '-in-read-1-and-2'
                             
                             if SV_pos_relative_to_read == 1:
@@ -821,28 +831,13 @@ def main(raw_args=None):
                                                                         orientation=is_forward,
                                                                         add_to_chim_fq=True)
                                 # should the SV be in the window for the read to be selcted to be added to chim file? 
-                                elif (SV_in_window is True):
-                                    # no SV in the read but SV in the window
-                                    # randomly select if the read will be included in the chim file
-                                    rannum = random.randint(1,100)
-                                    # what is a good percent of non-SV containing reads to send to chim file?
-                                    #       ^ currently >7% chance of this non-SV containing SV being sent to chim file.
-                                    #       TODO seems to be too much
-                                    if rannum == 1:
-                                        output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
+                                elif (SV_pos_relative_to_read == 1 or SV_pos_relative_to_read == 5):
+                                    output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
                                                                         my_read_data[0][3],
                                                                         read2=my_read_data[1][2],
                                                                         qual2=my_read_data[1][3],
                                                                         orientation=is_forward,
                                                                         add_to_chim_fq=True)
-                                        reads_to_sample += 1
-                                    else:
-                                        output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
-                                                                        my_read_data[0][3],
-                                                                        read2=my_read_data[1][2],
-                                                                        qual2=my_read_data[1][3],
-                                                                        orientation=is_forward,
-                                                                        add_to_chim_fq=False)
                                 else:
                                     # no SV in the window
                                     output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
