@@ -2,6 +2,7 @@ from struct import pack
 import Bio.bgzf as bgzf
 import pathlib
 import re
+import csv
 
 from source.neat_cigar import CigarString
 
@@ -106,6 +107,7 @@ class OutputFileWriter:
             chim_fq2 = pathlib.Path(out_prefix + 'chim_read2.fq.gz')
         bam = pathlib.Path(out_prefix + '_golden.bam')
         vcf = pathlib.Path(out_prefix + '_golden.vcf.gz')
+        chim_csv = pathlib.Path(out_prefix + '_chim.csv')
 
         # TODO Make a fasta-specific method
         self.no_fastq = no_fastq
@@ -116,6 +118,7 @@ class OutputFileWriter:
             if paired:
                 self.fq2_file = bgzf.open(fq2, 'w')
             
+
             self.chim_fq1_file = bgzf.open(chim_fq1, 'w')
             self.chim_fq2_file = bgzf.open(chim_fq2, 'w')
 
@@ -175,12 +178,21 @@ class OutputFileWriter:
                 self.bam_file.write(n[0] + '\0')
                 self.bam_file.write(pack('<i', n[3]))
 
+        # CSV OUTPUT
+        self.chim_csv_file = None
+        if csv_header is not None:
+            self.chim_csv_file.open(chim_csv, 'w')
+            self.chim_csv_file.writeheader('read_name', 'read1', 'qual1')
+
         # buffers for more efficient writing
         self.fq1_buffer = []
         self.fq2_buffer = []
         self.chim_fq1_buffer = []
         self.chim_fq2_buffer = []
         self.bam_buffer = []
+
+    def write_chim_csv(self, read_name, read1, qual1, read2=None, qual2=None):
+        self.chim_csv_file.writerow(read_name, read1, qual1, read2, qual2)
 
     # TODO add write_fasta_record
 
@@ -347,3 +359,5 @@ class OutputFileWriter:
             self.vcf_file.close()
         if self.bam_file is not None:
             self.bam_file.close()
+        if self.chim_csv is not None:
+            self.chim_csv.close()
