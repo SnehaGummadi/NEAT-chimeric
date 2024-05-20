@@ -830,6 +830,8 @@ def main(raw_args=None):
                                                                         qual2=my_read_data[1][3],
                                                                         orientation=is_forward,
                                                                         add_to_chim_fq=True)
+                                    output_file_writer.write_chim_csv(my_read_name, my_read_data[0][2], my_read_data[0][3], read2=my_read_data[1][2],qual2=my_read_data[1][3])
+
                                 # should the SV be in the window for the read to be selcted to be added to chim file? 
                                 elif (SV_pos_relative_to_read == 1 or SV_pos_relative_to_read == 5):
                                     output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
@@ -838,6 +840,7 @@ def main(raw_args=None):
                                                                         qual2=my_read_data[1][3],
                                                                         orientation=is_forward,
                                                                         add_to_chim_fq=True)
+                                    output_file_writer.write_chim_csv(my_read_name, my_read_data[0][2], my_read_data[0][3], read2=my_read_data[1][2],qual2=my_read_data[1][3])
                                 else:
                                     # no SV in the window
                                     output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],

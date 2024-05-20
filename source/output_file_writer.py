@@ -179,10 +179,11 @@ class OutputFileWriter:
                 self.bam_file.write(pack('<i', n[3]))
 
         # CSV OUTPUT
-        self.chim_csv_file = None
-        if csv_header is not None:
-            self.chim_csv_file.open(chim_csv, 'w')
-            self.chim_csv_file.writeheader('read_name', 'read1', 'qual1')
+        with open(chim_csv, 'a', newline='') as self.chim_csv_file:
+            fieldnames= ['read_name','read1','qual1','read2','qual2']
+            csvwriter = csv.DictWriter(self.chim_csv_file, fieldnames=fieldnames)
+            csvwriter.writeheader
+
 
         # buffers for more efficient writing
         self.fq1_buffer = []
@@ -191,8 +192,16 @@ class OutputFileWriter:
         self.chim_fq2_buffer = []
         self.bam_buffer = []
 
-    def write_chim_csv(self, read_name, read1, qual1, read2=None, qual2=None):
-        self.chim_csv_file.writerow(read_name, read1, qual1, read2, qual2)
+    def write_chim_csv(self, read_name, read1, qual1, read2, qual2):
+        self.chim_csv_file.writerow(
+            {
+                'read_name':read_name,
+                'read1':read1,
+                'qual1':qual1,
+                'read2':read2,
+                'qual2':qual2
+            }
+        )
 
     # TODO add write_fasta_record
 
