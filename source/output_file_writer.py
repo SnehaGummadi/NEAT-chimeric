@@ -182,7 +182,7 @@ class OutputFileWriter:
         with open(chim_csv, 'a', newline='') as self.chim_csv_file:
             fieldnames= ['read_name','read1','qual1','read2','qual2']
             csvwriter = csv.DictWriter(self.chim_csv_file, fieldnames=fieldnames)
-            csvwriter.writeheader
+            csvwriter.writeheader()
 
 
         # buffers for more efficient writing
