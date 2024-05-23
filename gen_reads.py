@@ -504,6 +504,8 @@ def main(raw_args=None):
             while True:
                 # which inserted variants are in this window?
                 vars_in_window = []
+                var_in_next_window = False
+                var_in_prev_window = False
                 updated = False
                 for j in range(v_index_from_prev, len(valid_variants_from_vcf)):
                     variants_position = valid_variants_from_vcf[j][0]
@@ -514,6 +516,10 @@ def main(raw_args=None):
                     if variants_position >= end - overlap - 1 and updated is False:
                         updated = True
                         v_index_from_prev = j
+                    if start - min([start + base_pair_distance, final_position]) < variants_position < start:
+                        var_in_prev_window = True
+                    if end < variants_position <= end + min([end + base_pair_distance, final_position]):
+                        var_in_next_window = True
                     if variants_position >= end:
                         break
 
@@ -688,7 +694,7 @@ def main(raw_args=None):
                         is_unmapped = []
                         if paired_end:
                             my_fraglen = fraglen_distribution.sample()
-                            my_read_data, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2 = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
+                            my_read_data, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2, r_pos1, r_pos2 = sequences.sample_read(se_class, my_fraglen, SV_index_in_win)
                             # skip if we failed to find a valid position to sample read
                             if my_read_data is None:
                                 continue
@@ -736,10 +742,11 @@ def main(raw_args=None):
                         my_read_name = out_prefix_name + '-' + ref_index[chrom][0] + '-' + str(read_name_count)
                         # add that this read was sampled from a window where there is a TE insertion
                         if SV_in_window == True:
-                            my_read_name += '_variant-in-window'
+                            #my_read_name += '_SV-in-window'
+                            my_read_name += f'_rpos1:{r_pos1}_rpos2:{r_pos2}_SVstart:{SV_index_in_win[0]}_SVend:{SV_index_in_win[0]+SV_index_in_win[1]}'
                             # add that this read includes the SV insertion
                             if SV_in_read is True:
-                                my_read_name += '_SV-present' 
+                                my_read_name += '_SV' 
                                 if SV_pos_relative_to_read == 2:
                                     if SV_span_read1 == True:
                                         my_read_name += '-span'
@@ -754,13 +761,16 @@ def main(raw_args=None):
                                     if SV_span_read2 == True:
                                         my_read_name += '-span2'
                                     my_read_name += '-in-read-1-and-2'
-                            
                             if SV_pos_relative_to_read == 1:
                                     my_read_name += '-left-of-read-1'
                             if SV_pos_relative_to_read == 3:
-                                    my_read_name += '-right-of-read-1-and-left-of-read-2'
+                                    my_read_name += '-between-read-1-and-read-2'
                             if SV_pos_relative_to_read == 5:
                                     my_read_name += '-right-of-read-2'
+                        if var_in_prev_window is True:
+                            my_read_name += '_SV-in-prev-window'
+                        if var_in_next_window is True:
+                            my_read_name += '_SV-in-next-window'
                         read_name_count += len(my_read_data)
 
 
@@ -823,16 +833,21 @@ def main(raw_args=None):
                         # write PE output
                         elif len(my_read_data) == 2:
                             if no_fastq is not True:
-                                if (SV_in_read is True):
+                                rannum = random.randint(1,100)
+                                if rannum == 1 and (var_in_next_window is True or var_in_prev_window is True):
                                     output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
                                                                         my_read_data[0][3],
                                                                         read2=my_read_data[1][2],
                                                                         qual2=my_read_data[1][3],
                                                                         orientation=is_forward,
                                                                         add_to_chim_fq=True)
-                                    output_file_writer.write_chim_csv(my_read_name, my_read_data[0][2], my_read_data[0][3], read2=my_read_data[1][2],qual2=my_read_data[1][3])
-
-                                # should the SV be in the window for the read to be selcted to be added to chim file? 
+                                elif (SV_in_read is True):
+                                    output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
+                                                                        my_read_data[0][3],
+                                                                        read2=my_read_data[1][2],
+                                                                        qual2=my_read_data[1][3],
+                                                                        orientation=is_forward,
+                                                                        add_to_chim_fq=True)
                                 elif (SV_pos_relative_to_read == 1 or SV_pos_relative_to_read == 5):
                                     output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],
                                                                         my_read_data[0][3],
@@ -840,7 +855,6 @@ def main(raw_args=None):
                                                                         qual2=my_read_data[1][3],
                                                                         orientation=is_forward,
                                                                         add_to_chim_fq=True)
-                                    output_file_writer.write_chim_csv(my_read_name, my_read_data[0][2], my_read_data[0][3], read2=my_read_data[1][2],qual2=my_read_data[1][3])
                                 else:
                                     # no SV in the window
                                     output_file_writer.write_fastq_record(my_read_name, my_read_data[0][2],

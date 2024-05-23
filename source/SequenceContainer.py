@@ -494,7 +494,8 @@ class SequenceContainer:
             non_empty = list(filter(lambda arr: arr, self.indel_list))
             #print(non_empty)
             SV_index_len = [list(non_empty[0])[0][0], len(list(non_empty[0])[0][2])]
-            #print(SV_index_len)
+            #print(SV_index_len[0])
+            #print(SV_index_len[1])
         else:
             SV_index_len = []
         return SV_index_len
@@ -758,25 +759,40 @@ class SequenceContainer:
             # TODO Ensure the distance for read is far enough from SV
             #       trying at least 500 bases away
 
+            
+            
             if (SV_index_in_win is not None and SV_index_in_win != []):
-                if(SV_index_in_win[0]+SV_index_in_win[1]+500 < r_pos1):
+                SV_start = SV_index_in_win[0]
+                SV_end = SV_index_in_win[0] + SV_index_in_win[1]
+
+                # 1 = SV is entirely to the left of read 1
+                if(SV_end+500 < r_pos1):
                     SV_pos_relative_to_read = 1
-                if(max(r_pos1, SV_index_in_win[0]) <= min(r_pos1+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
+
+                # 2 = SV is either partially or entirely in read 1
+                if(max(r_pos1, SV_start) <= min(r_pos1+self.read_len, SV_end)):
                     SV_pos_relative_to_read = 2
                     SV_in_read = True
-                    if(r_pos1 >= SV_index_in_win[0] and r_pos1+self.read_len < SV_index_in_win[0]+SV_index_in_win[1]):
+                    if(r_pos1 >= SV_start and r_pos1+self.read_len < SV_end):
                         SV_span_read1 = True
-                if(r_pos1+self.read_len < SV_index_in_win[0] and SV_index_in_win[0]+SV_index_in_win[1] < r_pos2):
+
+                 # 3 = SV is entirely between read 1 and read 2
+                if(r_pos1+self.read_len < SV_start and SV_end < r_pos2):
                     SV_pos_relative_to_read = 3
-                if(max(r_pos2, SV_index_in_win[0]) <= min(r_pos2+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
+
+                # 4 = SV is entirely or partially within read 2
+                if(max(r_pos2, SV_start) <= min(r_pos2+self.read_len, SV_end)):
                     SV_pos_relative_to_read = 4
                     SV_in_read = True
-                    if(r_pos2 >= SV_index_in_win[0] and r_pos2+self.read_len < SV_index_in_win[0]+SV_index_in_win[1]):
+                    if(r_pos2 >= SV_start and r_pos2+self.read_len < SV_end):
                         SV_span_read2 = True
-                if(SV_index_in_win[0]+SV_index_in_win[1] > r_pos2+self.read_len+500):
+
+                # 5 = SV is entirely to the right of read 2
+                if(SV_start > r_pos2+self.read_len+500):
                     SV_pos_relative_to_read = 5
-                if(max(r_pos1, SV_index_in_win[0]) <= min(r_pos1+self.read_len, SV_index_in_win[0]+SV_index_in_win[1]) and
-                    max(r_pos2, SV_index_in_win[0]) <= min(r_pos2+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
+
+                if(max(r_pos1, SV_start) <= min(r_pos1+self.read_len, SV_end) and
+                    max(r_pos2, SV_start) <= min(r_pos2+self.read_len, SV_end)):
                     SV_pos_relative_to_read = 6
                     SV_in_read = True
 
@@ -916,7 +932,7 @@ class SequenceContainer:
             read_out.append([self.fm_pos[my_ploid][read[0]], my_cigar, read[3], str(read[1])])
 
         # read_out[i] = (pos, cigar, read_string, qual_string)
-        return read_out, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2
+        return read_out, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2, r_pos1, r_pos2
 
 
 class ReadContainer:
