@@ -747,7 +747,7 @@ class SequenceContainer:
             # SV_index_in_win[1] = length of the SV
 
             # SV_pos_relative_to_read
-            # 0 = SV not in window
+            # 0 = SV not in window or does not pass the threshold
             # 1 = SV is entirely to the left of read 1
             # 2 = SV is either partially or entirely in read 1
             # 3 = SV is entirely between read 1 and read 2
@@ -773,14 +773,12 @@ class SequenceContainer:
                     SV_in_read = True
                     if(r_pos2 >= SV_index_in_win[0] and r_pos2+self.read_len < SV_index_in_win[0]+SV_index_in_win[1]):
                         SV_span_read2 = True
-                if(SV_index_in_win[0] > r_pos2+self.read_len+500):
+                if(SV_index_in_win[0]+SV_index_in_win[1] > r_pos2+self.read_len+500):
                     SV_pos_relative_to_read = 5
                 if(max(r_pos1, SV_index_in_win[0]) <= min(r_pos1+self.read_len, SV_index_in_win[0]+SV_index_in_win[1]) and
                     max(r_pos2, SV_index_in_win[0]) <= min(r_pos2+self.read_len, SV_index_in_win[0]+SV_index_in_win[1])):
                     SV_pos_relative_to_read = 6
                     SV_in_read = True
-            else:
-                SV_pos_relative_to_read = 0
 
         # error format:
         # myError[i] = (type, len, pos, ref, alt)
