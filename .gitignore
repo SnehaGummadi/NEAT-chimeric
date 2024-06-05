@@ -7,3 +7,9 @@
 /build
 /dist
 /NEAT.egg-info
+*.fq
+*.fastq
+*.fq.gz
+*.fastq.gz
+*.vcf.gz
+makeChimericReads.sh
