@@ -714,10 +714,10 @@ class SequenceContainer:
         # choose a random position within the ploid, and generate quality scores / sequencing errors
         reads_to_sample = []
         if frag_len is None:
-            r_pos = self.coverage_distribution[my_ploid].sample()
+            r_pos = self.coverage_distribution[0].sample()
 
             # sample read position and call function to compute quality scores / sequencing errors
-            r_dat = self.sequences[my_ploid][r_pos:r_pos + self.read_len]
+            r_dat = self.sequences[0][r_pos:r_pos + self.read_len]
             (my_qual, my_errors) = sequencing_model.get_sequencing_errors(r_dat)
             reads_to_sample.append([r_pos, my_qual, my_errors, r_dat])
 
@@ -727,7 +727,7 @@ class SequenceContainer:
             to start. Then it has to do some math based on the window to find where the mate ends (r_pos2)
             """
             # I think this is the position of the error
-            r_pos1 = self.coverage_distribution[my_ploid][self.fraglen_ind_map[frag_len]].sample()
+            r_pos1 = self.coverage_distribution[0][self.fraglen_ind_map[frag_len]].sample()
 
             # I think this is the position on the fragment of the read's mate? I'm not sure what this is
             r_pos2 = r_pos1 + frag_len - self.read_len
@@ -737,8 +737,8 @@ class SequenceContainer:
             r_dat1 - the read based on the r_pos random starting point  
             r_dat2 - this will end up being the last read of the reverse strand
             """
-            r_dat1 = self.sequences[my_ploid][r_pos1:r_pos1 + self.read_len]
-            r_dat2 = self.sequences[my_ploid][r_pos2:r_pos2 + self.read_len]
+            r_dat1 = self.sequences[0][r_pos1:r_pos1 + self.read_len]
+            r_dat2 = self.sequences[0][r_pos2:r_pos2 + self.read_len]
             (my_qual1, my_errors1) = sequencing_model.get_sequencing_errors(r_dat1)
             (my_qual2, my_errors2) = sequencing_model.get_sequencing_errors(r_dat2, is_reverse_strand=True)
             reads_to_sample.append([r_pos1, my_qual1, my_errors1, r_dat1])
@@ -807,20 +807,20 @@ class SequenceContainer:
         read_out = []
         for read in reads_to_sample:
             try:
-                my_cigar = self.all_cigar[my_ploid][read[0]]
+                my_cigar = self.all_cigar[0][read[0]]
             except IndexError:
                 print('Index error when attempting to find cigar string.')
-                print(my_ploid, len(self.all_cigar[my_ploid]), read[0])
+                print(my_ploid, len(self.all_cigar[0]), read[0])
                 if frag_len is not None:
                     print((r_pos1, r_pos2))
                     print(frag_len, self.fraglen_ind_map[frag_len])
                 sys.exit(1)
             total_d = sum([error[1] for error in read[2] if error[0] == 'D'])
             total_i = sum([error[1] for error in read[2] if error[0] == 'I'])
-            avail_b = len(self.sequences[my_ploid]) - read[0] - self.read_len - 1
+            avail_b = len(self.sequences[0]) - read[0] - self.read_len - 1
 
             # add buffer sequence to fill in positions that get deleted
-            read[3] += self.sequences[my_ploid][read[0] + self.read_len:read[0] + self.read_len + total_d]
+            read[3] += self.sequences[0][read[0] + self.read_len:read[0] + self.read_len + total_d]
             # this is leftover code and a patch for a method that isn't used. There is probably a better
             # way to structure this than with a boolean
             first_time = True
@@ -866,7 +866,7 @@ class SequenceContainer:
                         fill_to_go = total_d - total_i + 1
                         if fill_to_go > 0:
                             try:
-                                extra_cigar_val = self.all_cigar[my_ploid][read[0] + fill_to_go][-fill_to_go:]
+                                extra_cigar_val = self.all_cigar[0][read[0] + fill_to_go][-fill_to_go:]
                             except IndexError:
                                 # Applying the deletions we want requires going beyond region boundaries.
                                 # Skip all indel errors
@@ -929,7 +929,7 @@ class SequenceContainer:
 
                 read[3] = read[3][:self.read_len]
 
-            read_out.append([self.fm_pos[my_ploid][read[0]], my_cigar, read[3], str(read[1])])
+            read_out.append([self.fm_pos[0][read[0]], my_cigar, read[3], str(read[1])])
 
         # read_out[i] = (pos, cigar, read_string, qual_string)
         return read_out, SV_in_read, SV_pos_relative_to_read, SV_span_read1, SV_span_read2, r_pos1, r_pos2
