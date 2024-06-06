@@ -194,14 +194,14 @@ class OutputFileWriter:
 
     def write_fastq_record(self, read_name, read1, qual1, read2=None, qual2=None, orientation=None, add_to_chim_fq=False):
         # Since read1 and read2 are Seq objects from Biopython, they have reverse_complement methods built-in
-        (read1, quality1) = (read1, qual1)
-        if read2 is not None and orientation is True:
-            (read2, quality2) = (read2.reverse_complement(), qual2[::-1])
-        elif read2 is not None and orientation is False:
-            read2_tmp = read2
-            qual2_tmp = qual2
-            (read2, quality2) = (read1, qual1)
-            (read1, quality1) = (read2_tmp.reverse_complement(), qual2_tmp[::-1])
+
+        if orientation is True:
+            (read1, quality1) = (read1, qual1)
+            (read2, quality2) = (read2, qual2)
+        else:
+            read1_temp = read1
+            (read1, quality1) = (read2.reverse_complement(), qual2[::-1])
+            (read2, quality2) = (read1_temp.reverse_complement(), qual1[::-1])
 
         if self.fasta_instead:
             self.fq1_buffer.append('>' + read_name + '/1\n' + str(read1) + '\n')
