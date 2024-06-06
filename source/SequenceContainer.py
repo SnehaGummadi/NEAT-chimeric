@@ -450,6 +450,8 @@ class SequenceContainer:
                 else:
                     which_ploid = [0]
                     which_alt = [0]
+            
+            which_ploid = [0]
 
             # ignore invalid ploids
             for i in range(len(which_ploid) - 1, -1, -1):
