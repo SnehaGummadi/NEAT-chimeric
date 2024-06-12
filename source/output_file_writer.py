@@ -202,6 +202,7 @@ class OutputFileWriter:
             read1_temp = read1
             (read1, quality1) = (read2.reverse_complement(), qual2[::-1])
             (read2, quality2) = (read1_temp.reverse_complement(), qual1[::-1])
+            read_name = read_name.replace('span1', '2span').replace('span2', '1span').replace('read1', '2read').replace('read2', '1read').replace('left-of-read-1', 'right-of-read-2').replace('right-of-read-2', 'left-of-read-1')
 
         if self.fasta_instead:
             self.fq1_buffer.append('>' + read_name + '/1\n' + str(read1) + '\n')
