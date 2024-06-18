@@ -23,6 +23,7 @@ import numpy as np
 import argparse
 import pathlib
 import gzip
+import pandas as pd
 from Bio import SeqIO
 
 from source.input_checking import check_file_open, is_in_range
@@ -398,6 +399,14 @@ def main(raw_args=None):
                                               fasta_instead=fasta_instead)
     # Using pathlib to make this more machine agnostic
     out_prefix_name = pathlib.Path(out_prefix).name
+
+    # Create pandas DataFrames for the reads that will be used to make chimeric reads
+    header = ['read_name', 'read1', 'qual1', 'read2', 'qual2', 'SV_location']
+    df_in_read1 = pd.DataFrame(columns=header)
+    df_in_read2 = pd.DataFrame(columns=header)
+    df_in_read1_2 = pd.DataFrame(columns=header)
+    df_left_read1 = pd.DataFrame(columns=header)
+    df_right_read2 = pd.DataFrame(columns=header)
 
     """
     LET'S GET THIS PARTY STARTED...
