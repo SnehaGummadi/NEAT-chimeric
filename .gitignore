@@ -5,3 +5,7 @@
 /.vscode/
 /.idea/
 *_NEAT.log
+*.fq.gz
+*.fq
+*.vcf.gz
+*.vcf
