@@ -1,0 +1,17 @@
+hervk_len	7536
+line_len	6053
+sva_a_len	1387
+aluSz_len	312
+aluY_len	311
+aluJb_len	312
+
+chr18_smallest_line_hervk_svaa.fa
+line	2573000
+hervk	3455000+len(line)
+sva_a	9139000+len(line)+len(hervk)
+
+chr18_smallest_alu_Y_Y_Sz_Jb.fa
+aluY	811000
+aluY	2573000+len(aluY)
+aluSz	5293500+len(aluY)+len(aluY)
+aluJb	9139000+len(aluY)+len(aluY)+len(aluSz)
