@@ -213,6 +213,9 @@ class OutputFileWriter:
         for file_pair in paired_files:
             file1_index = SeqIO.index(str(file_pair[0]), 'fastq')
             file2_index = SeqIO.index(str(file_pair[1]), 'fastq')
+
+            print("was able to index")
+
             # Reconstruct the name of the reads
             contig_name = Path(file_pair[0]).name.removesuffix('_r1_paired.fq.bgz')
             # Either both will have data, or neither, so checking one is sufficient
@@ -261,14 +264,14 @@ class OutputFileWriter:
                 print(f'{i/num_reads:.2%}', end='\r')
                 current_key = shuffled_paired_keys[i]
                 # reconstruct tho chromosome name
-                chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
-                suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
-                chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
+                # chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
+                # suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
+                # chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
                 # 1 here because this is read1
-                read1 = fastq_index_dict[chrom_name][1][current_key[0]]
+                read1 = fastq_index_dict['chr18'][1][current_key[0]]
                 SeqIO.write(read1, fq1, 'fastq')
                 # 2 for read2
-                read2 = fastq_index_dict[chrom_name][2][current_key[1]]
+                read2 = fastq_index_dict['chr18'][2][current_key[1]]
                 SeqIO.write(read2, fq2, 'fastq')
                 if not wrote_r2:
                     wrote_r2 = True
