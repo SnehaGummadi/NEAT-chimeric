@@ -2,6 +2,8 @@ import logging
 import time
 import pickle
 import sys
+import pandas as pd
+import random
 
 from math import ceil
 from pathlib import Path
@@ -13,6 +15,7 @@ from .options import Options
 from ...common import open_output
 from ...variants import ContigVariants
 from .read import Read
+from .gen_chim_reads import GenChimericReads
 
 __all__ = [
     'generate_reads',
@@ -238,6 +241,45 @@ def generate_reads(reference: SeqRecord,
     properly_paired_reads = []
     singletons = []
 
+    """
+                for line_hervk_svaa
+                line at 2573000 - 2579053
+                hervk at 3461053 - 3468589
+                sva_a at 9152589 - 9153976
+
+                for alu_y_y_sz_jb
+                aluY at 811000 - 811311
+                aluY at 2573311 - 2573622
+                aluSz at 5294122 - 5294434
+                aluJb at 9139934 - 9140246
+                """
+    column = ['name','start','end']
+    lhs_data = [['line',2573000,2579053],['hervk',3461053,3468589],['svaa',9152589,9153976]]
+    alu_data = [['y1',811000,811311],['y2',2573311,2573622],['sz',5294122,5294434],['jb',9139934,9140246]]
+    lhs_ins = pd.DataFrame(lhs_data,columns=column)
+    alu_ins = pd.DataFrame(alu_data,columns=column)
+
+    read_column = ['read1','read2']
+    left_line = pd.DataFrame(columns=read_column)
+    right_line = pd.DataFrame(columns=read_column)
+    line_read1 = pd.DataFrame(columns=read_column)
+    line_read2 = pd.DataFrame(columns=read_column)
+    line_read12 = pd.DataFrame(columns=read_column)
+
+    left_hervk = pd.DataFrame(columns=read_column)
+    right_hervk = pd.DataFrame(columns=read_column)
+    hervk_read1 = pd.DataFrame(columns=read_column)
+    hervk_read2 = pd.DataFrame(columns=read_column)
+    hervk_read12 = pd.DataFrame(columns=read_column)
+
+    left_svaa = pd.DataFrame(columns=read_column)
+    right_svaa = pd.DataFrame(columns=read_column)
+    svaa_read1 = pd.DataFrame(columns=read_column)
+    svaa_read2 = pd.DataFrame(columns=read_column)
+    svaa_read12 = pd.DataFrame(columns=read_column)
+
+    print(f'reference_id: {reference.id}, chrom: {chrom}, ref_start: {ref_start}')
+
     _LOG.debug("Writing fastq(s) and optional tsam, if indicated")
     t = time.time()
     with (
@@ -248,6 +290,10 @@ def generate_reads(reference: SeqRecord,
     ):
 
         for i in range(len(reads)):
+            which_read = -1
+            sent_to_chimeric = False
+            span_1 = False
+            span_2 = False
             print(f'{i/len(reads):.2%}', end='\r')
             # First thing we'll do is check to see if this read is filtered out by a bed file
             read1, read2 = (reads[i][0], reads[i][1]), (reads[i][2], reads[i][3])
@@ -336,7 +382,8 @@ def generate_reads(reference: SeqRecord,
                     position=read1[0] + ref_start,
                     end_point=read1[1] + ref_start,
                     padding=actual_padding,
-                    is_paired=is_paired
+                    is_paired=is_paired,
+                    is_read1=True
                 )
 
                 read_1.mutations = find_applicable_mutations(read_1, contig_variants)
@@ -344,9 +391,7 @@ def generate_reads(reference: SeqRecord,
                     handle = fq1_paired
                 else:
                     handle = fq1_single
-                read_1.finalize_read_and_write(
-                    error_model_1, mutation_model, handle, options.quality_offset, options.produce_fastq
-                )
+                
 
             # if read1 is a sinleton then these are single-ended reads or this one was filtered out, se we skip
             if not read1_is_singleton:
@@ -368,25 +413,255 @@ def generate_reads(reference: SeqRecord,
                     end_point=read2[1] + ref_start,
                     padding=actual_padding,
                     is_reverse=True,
-                    is_paired=is_paired
+                    is_paired=is_paired,
+                    is_read1=False
                 )
 
                 read_2.mutations = find_applicable_mutations(read_2, contig_variants)
                 if is_paired:
                     handle = fq2_paired
                 else:
-                    handle = fq2_single
-                read_2.finalize_read_and_write(
-                    error_model_2, mutation_model, handle, options.quality_offset, options.produce_fastq
-                )
+                    handle = fq2_single    
 
             if properly_paired:
-                properly_paired_reads.append((read_1, read_2))
+                for index,row in lhs_ins.iterrows():
+
+                    if(row['end']+200 < read_1.position and row['end']+1000 > read_1.position):
+                        # TE is entirely to the left of read 1
+                        #rannum = random.randint(1,100)
+                        #if rannum < 25:
+                            sent_to_chimeric = True
+                            if 'line' in row['name']:
+                                og_name_1 = read_1.name
+                                og_name_2 = read_2.name
+                                read_1.name = f"{og_name_1[:-2]}-line-left/1"
+                                read_2.name = f"{og_name_2[:-2]}-line-left/2"
+                                left_line.loc[len(left_line)] = [read_1,read_2]
+                            elif 'hervk' in row['name']:
+                                og_name_1 = read_1.name
+                                og_name_2 = read_2.name
+                                read_1.name = f"{og_name_1[:-2]}-hervk-left/1"
+                                read_2.name = f"{og_name_2[:-2]}-hervk-left/2"
+                                left_hervk.loc[len(left_hervk)] = [read_1,read_2]
+                            elif 'svaa' in row['name']:
+                                og_name_1 = read_1.name
+                                og_name_2 = read_2.name
+                                read_1.name = f"{og_name_1[:-2]}-svaa-left/1"
+                                read_2.name = f"{og_name_2[:-2]}-svaa-left/2"
+                                left_svaa.loc[len(left_svaa)] = [read_1,read_2]
+            
+                    if(max(read_1.position,row['start']) <= min(read_1.end_point,row['end'])):
+                        # TE is either partially or entirely in read 1
+                        which_read = 1
+                        sent_to_chimeric = False
+                        if(read_1.position >= row['start'] and read_1.end_point <= row['end']):
+                            # TE spans read 1
+                            span_1 = True
+            
+                    # if(read_1.end_point < row['start'] and row['end'] < read_2.position):
+                        # TE is entirely between read 1 and read 2
+                        # nothing to do
+                    
+                    if(max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])):
+                        # TE is entirely or paritially within read 2
+                        which_read = 2
+                        sent_to_chimeric = False
+                        if(read_2.position >= row['start'] and read_2.end_point <= row['end']):
+                            # TE spans read 2
+                            span_2 = True
+                    
+                    if(row['start'] > read_2.end_point+200 and row['start'] < read_2.end_point+1000):
+                        # TE is entirely to the right of read 2
+                        #rannum = random.randint(1,100)
+                        #if rannum < 75:
+                            sent_to_chimeric = True
+                            if 'line' in row['name']:
+                                og_name_1 = read_1.name
+                                og_name_2 = read_2.name
+                                read_1.name = f"{og_name_1[:-2]}-line-right/1"
+                                read_2.name = f"{og_name_2[:-2]}-line-right/2"
+                                right_line.loc[len(right_line)] = [read_1,read_2]
+                            elif 'hervk' in row['name']:
+                                og_name_1 = read_1.name
+                                og_name_2 = read_2.name
+                                read_1.name = f"{og_name_1[:-2]}-hervk-right/1"
+                                read_2.name = f"{og_name_2[:-2]}-hervk-right/2"
+                                right_hervk.loc[len(right_hervk)] = [read_1,read_2]
+                            elif 'svaa' in row['name']:
+                                og_name_1 = read_1.name
+                                og_name_2 = read_2.name
+                                read_1.name = f"{og_name_1[:-2]}-svaa-right/1"
+                                read_2.name = f"{og_name_2[:-2]}-svaa-right/2"
+                                right_svaa.loc[len(right_svaa)] = [read_1,read_2]
+                    
+                    if(max(read_1.position,row['start']) <= min(read_1.end_point,row['end']) and
+                       max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])):
+                        # TE is present entirely or partially in both read 1 and read 2
+                        which_read = 3
+                        sent_to_chimeric = True
+                    
+                    if which_read == 1:
+                        if span_1 is True:
+                            read_1.name = f"{read_1.name[:-2]}-span1/1"
+                            read_2.name = f"{read_2.name[:-2]}-span1/2"
+                        read_1.name = f"{read_1.name[:-2]}-in-read1-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-in-read1-{row['name']}/2"
+                        if 'line' in row['name']:
+                            line_read1.loc[len(line_read1)] = [read_1,read_2]
+                        elif 'hervk' in row['name']:
+                            hervk_read1.loc[len(hervk_read1)] = [read_1,read_2]
+                        elif 'svaa' in row['name']:
+                            svaa_read1.loc[len(svaa_read1)] = [read_1,read_2]
+                    elif which_read == 2:
+                        if span_2 is True:
+                            read_1.name = f"{read_1.name[:-2]}-span2/1"
+                            read_2.name = f"{read_2.name[:-2]}-span2/2"
+                        read_1.name = f"{read_1.name[:-2]}-in-read2-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-in-read2-{row['name']}/2"
+                        if 'line' in row['name']:
+                            line_read2.loc[len(line_read2)] = [read_1,read_2]
+                        elif 'hervk' in row['name']:
+                            hervk_read2.loc[len(hervk_read2)] = [read_1,read_2]
+                        elif 'svaa' in row['name']:
+                            svaa_read2.loc[len(svaa_read2)] = [read_1,read_2]
+                    elif which_read == 3:
+                        if span_1 is True:
+                            read_1.name = f"{read_1.name[:-2]}-span1/1"
+                            read_2.name = f"{read_2.name[:-2]}-span1/2"
+                        if span_2 is True:
+                            read_1.name = f"{read_1.name[:-2]}-span2/1"
+                            read_2.name = f"{read_2.name[:-2]}-span2/2"
+                        read_1.name = f"{read_1.name[:-2]}-in-read-1-2-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-in-read-1-2-{row['name']}/2"
+                        if 'line' in row['name']:
+                            line_read12.loc[len(line_read12)] = [read_1,read_2]
+                        elif 'hervk' in row['name']:
+                            hervk_read12.loc[len(hervk_read12)] = [read_1,read_2]
+                        elif 'svaa' in row['name']:
+                            svaa_read12.loc[len(svaa_read12)] = [read_1,read_2]
+                    which_read = -1
+
+                # Send the reads to temp fastqs
+                # This is assuming that we require paired end reads otherwise will fail here
+                if sent_to_chimeric == False:
+                    read_1.finalize_read_and_write(
+                        error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                    )
+                    read_2.finalize_read_and_write(
+                        error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                    )
+                    properly_paired_reads.append((read_1, read_2))
             elif read1_is_singleton:
                 # This will be the choice for all single-ended reads
                 singletons.append((read_1, None))
             else:
                 singletons.append((None, read_2))
+
+        _LOG.debug("Generating chimeric reads")
+        start = len(reads)
+        # Create instance of the GenChimericReads class for each TE
+        chim_line_gen = GenChimericReads(line_read1,line_read2,line_read12,left_line,right_line,'line',start)
+        chim_hervk_gen = GenChimericReads(hervk_read1,hervk_read2,hervk_read12,left_hervk,right_hervk,'hervk',chim_line_gen.chim_read_count)
+        chim_svaa_gen = GenChimericReads(svaa_read1,svaa_read2,svaa_read12,left_svaa,right_svaa,'svaa',chim_hervk_gen.chim_read_count)
+
+        # Start genchimeric reads func for each object
+        chim_line_gen.make_chim_reads()
+        chim_hervk_gen.make_chim_reads()
+        chim_svaa_gen.make_chim_reads()
+
+        chim_line_gen.made_chimeric_reads.to_csv('made_chim_line.csv', sep='\t')
+        chim_hervk_gen.made_chimeric_reads.to_csv('made_chim_hervk.csv', sep='\t')
+        chim_svaa_gen.made_chimeric_reads.to_csv('made_chim_svaa.csv', sep='\t')
+
+        # Use the read.finalize_read_and_write() function to send chimeric reads to temp fq
+        #   which would then be randomized and finalized in the runner.py
+
+        # Send line
+        if chim_line_gen.in_read12_index_left_last > chim_line_gen.in_read12_index_right_last:
+            start_iter = chim_line_gen.in_read12_index_left_last
+        else:
+            start_iter = chim_line_gen.in_read12_index_right_last
+
+        _LOG.info('starting chim_lin_gen.in_read12.......................')
+    
+        for index,row in chim_line_gen.in_read12[start_iter:].iterrows():
+            row['read1'].finalize_read_and_write(
+                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+            )
+            row['read2'].finalize_read_and_write(
+                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+            )
+            read1 = row['read1']
+            _LOG.info(read1.name)
+            properly_paired_reads.append((row['read1'], row['read2']))
+        _LOG.info('starting chim_lin_gen.made_chimeric_reads................')
+        for index,row in chim_line_gen.made_chimeric_reads.iterrows():
+            row['read1'].finalize_read_and_write(
+                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+            )
+            row['read2'].finalize_read_and_write(
+                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+            )
+            read1 = row['read1']
+            _LOG.info(read1.name)
+
+            properly_paired_reads.append((row['read1'], row['read2']))
+
+        # Send hervk
+        if chim_hervk_gen.in_read12_index_left_last > chim_hervk_gen.in_read12_index_right_last:
+            start_iter = chim_hervk_gen.in_read12_index_left_last
+        else:
+            start_iter = chim_hervk_gen.in_read12_index_right_last
+        _LOG.info('starting chim_hervk_gen.in_read12...........................')
+        for index,row in chim_hervk_gen.in_read12[start_iter:].iterrows():
+            row['read1'].finalize_read_and_write(
+                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+            )
+            row['read2'].finalize_read_and_write(
+                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+            )
+            read1 = row['read1']
+            _LOG.info(read1.name)
+            properly_paired_reads.append((row['read1'], row['read2']))
+        _LOG.info('starting chim_hervk_gen.made_chimeric_reads...............................')
+        for index,row in chim_hervk_gen.made_chimeric_reads.iterrows():
+            row['read1'].finalize_read_and_write(
+                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+            )
+            row['read2'].finalize_read_and_write(
+                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+            )
+            read1 = row['read1']
+            _LOG.info(read1.name)
+            properly_paired_reads.append((row['read1'], row['read2']))
+    
+        # Send svaa
+        if chim_svaa_gen.in_read12_index_left_last > chim_svaa_gen.in_read12_index_right_last:
+            start_iter = chim_svaa_gen.in_read12_index_left_last
+        else:
+            start_iter = chim_svaa_gen.in_read12_index_right_last
+        _LOG.info('starting chim_svaa_gen.in_read12...................................')
+        for index,row in chim_svaa_gen.in_read12[start_iter:].iterrows():
+            row['read1'].finalize_read_and_write(
+                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+            )
+            row['read2'].finalize_read_and_write(
+                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+            )
+            read1 = row['read1']
+            _LOG.info(read1.name)
+            properly_paired_reads.append((row['read1'], row['read2']))
+        _LOG.info('starting chim_svaa_gen.made_chimeric_reads..................................')
+        for index,row in chim_svaa_gen.made_chimeric_reads.iterrows():
+            row['read1'].finalize_read_and_write(
+                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+            )
+            row['read2'].finalize_read_and_write(
+                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+            )
+            read1 = row['read1']
+            _LOG.info(read1.name)
+            properly_paired_reads.append((row['read1'], row['read2']))
 
     _LOG.info(f"Contig fastq(s) written in: {(time.time() - t)/60:.2f} m")
 
