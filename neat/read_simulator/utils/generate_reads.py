@@ -454,6 +454,7 @@ def generate_reads(reference: SeqRecord,
                         # TE is either partially or entirely in read 1
                         which_read = 1
                         sent_to_chimeric = False
+                        read1.insertion_in_read = True
                         if(read_1.position >= row['start'] and read_1.end_point <= row['end']):
                             # TE spans read 1
                             span_1 = True
@@ -466,6 +467,7 @@ def generate_reads(reference: SeqRecord,
                         # TE is entirely or paritially within read 2
                         which_read = 2
                         sent_to_chimeric = False
+                        read2.insertion_in_read = True
                         if(read_2.position >= row['start'] and read_2.end_point <= row['end']):
                             # TE spans read 2
                             span_2 = True
@@ -499,6 +501,8 @@ def generate_reads(reference: SeqRecord,
                         # TE is present entirely or partially in both read 1 and read 2
                         which_read = 3
                         sent_to_chimeric = True
+                        read1.insertion_in_read = True
+                        read2.insertion_in_read = True
                     
                     if which_read == 1:
                         if span_1 is True:
