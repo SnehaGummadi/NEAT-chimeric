@@ -52,9 +52,6 @@ class GenChimericReads:
 
     def make_read1_chimeric(self):
         for index,row in self.left.iterrows():
-            # Create new read name
-            new_read_name = f'NEAT-generated_chr18_chim-read1-{self.tename}_{self.chim_read_count}'
-        
             # Copy read 2 in left DF
             new_read2 = row['read2']
 
@@ -62,7 +59,8 @@ class GenChimericReads:
             new_read1 = self.in_read12.loc[self.in_read12_index_left_last]['read1']
             self.in_read12_index_left_last += 1
 
-            # Change read names
+            # Create new read name
+            new_read_name = f'NEAT-generated_chr18_chim-read1-{self.tename}-start1-{new_read1.position}-start2-{new_read2.position}_{self.chim_read_count}'
             new_read1.name = f'{new_read_name}/1'
             new_read2.name = f'{new_read_name}/2'
 
@@ -77,9 +75,6 @@ class GenChimericReads:
 
     def make_read2_chimeric(self):
         for index,row in self.right.iterrows():
-            # Create new read name
-            new_read_name = f'NEAT-generated_chr18_chim-read2-{self.tename}_{self.chim_read_count}'
-
             # Copy read 1 from right DF
             new_read1 = row['read1']
 
@@ -87,7 +82,8 @@ class GenChimericReads:
             new_read2 = self.in_read12.loc[self.in_read12_index_right_last]['read2']
             self.in_read12_index_right_last += 1
 
-            # Change read names
+            # Create new read name
+            new_read_name = f'NEAT-generated_chr18_chim-read2-{self.tename}-start1-{new_read1.position}-start2-{new_read2.position}_{self.chim_read_count}'
             new_read1.name = f'{new_read_name}/1'
             new_read2.name = f'{new_read_name}/2'
 

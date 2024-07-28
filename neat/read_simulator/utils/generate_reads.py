@@ -426,6 +426,7 @@ def generate_reads(reference: SeqRecord,
             if properly_paired:
                 for index,row in lhs_ins.iterrows():
 
+                    # TODO Find optimal distance for read to be made chimeric. Currently at least 200 away from TE
                     if(row['end']+200 < read_1.position and row['end']+1000 > read_1.position):
                         # TE is entirely to the left of read 1
                         #rannum = random.randint(1,100)
@@ -508,8 +509,9 @@ def generate_reads(reference: SeqRecord,
                         if span_1 is True:
                             read_1.name = f"{read_1.name[:-2]}-span1/1"
                             read_2.name = f"{read_2.name[:-2]}-span1/2"
-                        read_1.name = f"{read_1.name[:-2]}-in-read1-{row['name']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-in-read1-{row['name']}/2"
+                        # Write the start index of each read to the read name + and that read 1 had the TE
+                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read1-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read1-{row['name']}/2"
                         if 'line' in row['name']:
                             line_read1.loc[len(line_read1)] = [read_1,read_2]
                         elif 'hervk' in row['name']:
@@ -520,8 +522,8 @@ def generate_reads(reference: SeqRecord,
                         if span_2 is True:
                             read_1.name = f"{read_1.name[:-2]}-span2/1"
                             read_2.name = f"{read_2.name[:-2]}-span2/2"
-                        read_1.name = f"{read_1.name[:-2]}-in-read2-{row['name']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-in-read2-{row['name']}/2"
+                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read2-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read2-{row['name']}/2"
                         if 'line' in row['name']:
                             line_read2.loc[len(line_read2)] = [read_1,read_2]
                         elif 'hervk' in row['name']:
@@ -535,8 +537,8 @@ def generate_reads(reference: SeqRecord,
                         if span_2 is True:
                             read_1.name = f"{read_1.name[:-2]}-span2/1"
                             read_2.name = f"{read_2.name[:-2]}-span2/2"
-                        read_1.name = f"{read_1.name[:-2]}-in-read-1-2-{row['name']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-in-read-1-2-{row['name']}/2"
+                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read-1-2-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read-1-2-{row['name']}/2"
                         if 'line' in row['name']:
                             line_read12.loc[len(line_read12)] = [read_1,read_2]
                         elif 'hervk' in row['name']:
