@@ -114,6 +114,7 @@ class Options(SimpleNamespace):
         self.defs['rng_seed'] = (int, None, None, None)
         self.defs['min_mutations'] = (int, 0, None, None)
         self.defs['overwrite_output'] = (bool, False, None, None)
+        self.defs['make_chimeric'] = (bool, False, None, None)
 
         # Create base variables, for update by the config
         self.reference: str | Path = reference
@@ -145,6 +146,7 @@ class Options(SimpleNamespace):
         self.overwrite_output: bool = False
         self.rng_seed: int | None = None
         self.rng: Generator | None = None
+        self.make_chimeric: bool = False
 
         # Cancer options (not yet implemented)
         self.cancer: str | Path

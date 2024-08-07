@@ -423,7 +423,7 @@ def generate_reads(reference: SeqRecord,
                 else:
                     handle = fq2_single    
 
-            if properly_paired:
+            if options.make_chimeric == True and properly_paired:
                 for index,row in lhs_ins.iterrows():
 
                     # TODO Find optimal distance for read to be made chimeric. Currently at least 200 away from TE
@@ -528,111 +528,112 @@ def generate_reads(reference: SeqRecord,
             else:
                 singletons.append((None, read_2))
 
-        _LOG.debug("Generating chimeric reads")
-        start = len(reads)
-        # Create instance of the GenChimericReads class for each TE
-        chim_line_gen = GenChimericReads(line_read12,left_line,right_line,'line',start)
-        chim_hervk_gen = GenChimericReads(hervk_read12,left_hervk,right_hervk,'hervk',chim_line_gen.chim_read_count)
-        chim_svaa_gen = GenChimericReads(svaa_read12,left_svaa,right_svaa,'svaa',chim_hervk_gen.chim_read_count)
+        if options.make_chimeric == True:
+            _LOG.debug("Generating chimeric reads")
+            start = len(reads)
+            # Create instance of the GenChimericReads class for each TE
+            chim_line_gen = GenChimericReads(line_read12,left_line,right_line,'line',start)
+            chim_hervk_gen = GenChimericReads(hervk_read12,left_hervk,right_hervk,'hervk',chim_line_gen.chim_read_count)
+            chim_svaa_gen = GenChimericReads(svaa_read12,left_svaa,right_svaa,'svaa',chim_hervk_gen.chim_read_count)
 
-        # Start genchimeric reads func for each object
-        chim_line_gen.make_chim_reads()
-        chim_hervk_gen.make_chim_reads()
-        chim_svaa_gen.make_chim_reads()
+            # Start genchimeric reads func for each object
+            chim_line_gen.make_chim_reads()
+            chim_hervk_gen.make_chim_reads()
+            chim_svaa_gen.make_chim_reads()
 
-        chim_line_gen.made_chimeric_reads.to_csv('made_chim_line.csv', sep='\t')
-        chim_hervk_gen.made_chimeric_reads.to_csv('made_chim_hervk.csv', sep='\t')
-        chim_svaa_gen.made_chimeric_reads.to_csv('made_chim_svaa.csv', sep='\t')
+            chim_line_gen.made_chimeric_reads.to_csv('made_chim_line.csv', sep='\t')
+            chim_hervk_gen.made_chimeric_reads.to_csv('made_chim_hervk.csv', sep='\t')
+            chim_svaa_gen.made_chimeric_reads.to_csv('made_chim_svaa.csv', sep='\t')
 
-        # Use the read.finalize_read_and_write() function to send chimeric reads to temp fq
-        #   which would then be randomized and finalized in the runner.py
+            # Use the read.finalize_read_and_write() function to send chimeric reads to temp fq
+            #   which would then be randomized and finalized in the runner.py
 
-        # Send line
-        if chim_line_gen.in_read12_index_left_last > chim_line_gen.in_read12_index_right_last:
-            start_iter = chim_line_gen.in_read12_index_left_last
-        else:
-            start_iter = chim_line_gen.in_read12_index_right_last
+            # Send line
+            if chim_line_gen.in_read12_index_left_last > chim_line_gen.in_read12_index_right_last:
+                start_iter = chim_line_gen.in_read12_index_left_last
+            else:
+                start_iter = chim_line_gen.in_read12_index_right_last
 
-        _LOG.info('starting chim_lin_gen.in_read12.......................')
-    
-        for index,row in chim_line_gen.in_read12[start_iter:].iterrows():
-            row['read1'].finalize_read_and_write(
-                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-            )
-            row['read2'].finalize_read_and_write(
-                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-            )
-            read1 = row['read1']
-            _LOG.info(read1.name)
-            properly_paired_reads.append((row['read1'], row['read2']))
-        _LOG.info('starting chim_lin_gen.made_chimeric_reads................')
-        for index,row in chim_line_gen.made_chimeric_reads.iterrows():
-            row['read1'].finalize_read_and_write(
-                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-            )
-            row['read2'].finalize_read_and_write(
-                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-            )
-            read1 = row['read1']
-            _LOG.info(read1.name)
+            _LOG.info('starting chim_lin_gen.in_read12.......................')
+        
+            for index,row in chim_line_gen.in_read12[start_iter:].iterrows():
+                row['read1'].finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                row['read2'].finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                read1 = row['read1']
+                _LOG.info(read1.name)
+                properly_paired_reads.append((row['read1'], row['read2']))
+            _LOG.info('starting chim_lin_gen.made_chimeric_reads................')
+            for index,row in chim_line_gen.made_chimeric_reads.iterrows():
+                row['read1'].finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                row['read2'].finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                read1 = row['read1']
+                _LOG.info(read1.name)
 
-            properly_paired_reads.append((row['read1'], row['read2']))
+                properly_paired_reads.append((row['read1'], row['read2']))
 
-        # Send hervk
-        if chim_hervk_gen.in_read12_index_left_last > chim_hervk_gen.in_read12_index_right_last:
-            start_iter = chim_hervk_gen.in_read12_index_left_last
-        else:
-            start_iter = chim_hervk_gen.in_read12_index_right_last
-        _LOG.info('starting chim_hervk_gen.in_read12...........................')
-        for index,row in chim_hervk_gen.in_read12[start_iter:].iterrows():
-            row['read1'].finalize_read_and_write(
-                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-            )
-            row['read2'].finalize_read_and_write(
-                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-            )
-            read1 = row['read1']
-            _LOG.info(read1.name)
-            properly_paired_reads.append((row['read1'], row['read2']))
-        _LOG.info('starting chim_hervk_gen.made_chimeric_reads...............................')
-        for index,row in chim_hervk_gen.made_chimeric_reads.iterrows():
-            row['read1'].finalize_read_and_write(
-                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-            )
-            row['read2'].finalize_read_and_write(
-                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-            )
-            read1 = row['read1']
-            _LOG.info(read1.name)
-            properly_paired_reads.append((row['read1'], row['read2']))
-    
-        # Send svaa
-        if chim_svaa_gen.in_read12_index_left_last > chim_svaa_gen.in_read12_index_right_last:
-            start_iter = chim_svaa_gen.in_read12_index_left_last
-        else:
-            start_iter = chim_svaa_gen.in_read12_index_right_last
-        _LOG.info('starting chim_svaa_gen.in_read12...................................')
-        for index,row in chim_svaa_gen.in_read12[start_iter:].iterrows():
-            row['read1'].finalize_read_and_write(
-                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-            )
-            row['read2'].finalize_read_and_write(
-                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-            )
-            read1 = row['read1']
-            _LOG.info(read1.name)
-            properly_paired_reads.append((row['read1'], row['read2']))
-        _LOG.info('starting chim_svaa_gen.made_chimeric_reads..................................')
-        for index,row in chim_svaa_gen.made_chimeric_reads.iterrows():
-            row['read1'].finalize_read_and_write(
-                error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-            )
-            row['read2'].finalize_read_and_write(
-                error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-            )
-            read1 = row['read1']
-            _LOG.info(read1.name)
-            properly_paired_reads.append((row['read1'], row['read2']))
+            # Send hervk
+            if chim_hervk_gen.in_read12_index_left_last > chim_hervk_gen.in_read12_index_right_last:
+                start_iter = chim_hervk_gen.in_read12_index_left_last
+            else:
+                start_iter = chim_hervk_gen.in_read12_index_right_last
+            _LOG.info('starting chim_hervk_gen.in_read12...........................')
+            for index,row in chim_hervk_gen.in_read12[start_iter:].iterrows():
+                row['read1'].finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                row['read2'].finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                read1 = row['read1']
+                _LOG.info(read1.name)
+                properly_paired_reads.append((row['read1'], row['read2']))
+            _LOG.info('starting chim_hervk_gen.made_chimeric_reads...............................')
+            for index,row in chim_hervk_gen.made_chimeric_reads.iterrows():
+                row['read1'].finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                row['read2'].finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                read1 = row['read1']
+                _LOG.info(read1.name)
+                properly_paired_reads.append((row['read1'], row['read2']))
+        
+            # Send svaa
+            if chim_svaa_gen.in_read12_index_left_last > chim_svaa_gen.in_read12_index_right_last:
+                start_iter = chim_svaa_gen.in_read12_index_left_last
+            else:
+                start_iter = chim_svaa_gen.in_read12_index_right_last
+            _LOG.info('starting chim_svaa_gen.in_read12...................................')
+            for index,row in chim_svaa_gen.in_read12[start_iter:].iterrows():
+                row['read1'].finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                row['read2'].finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                read1 = row['read1']
+                _LOG.info(read1.name)
+                properly_paired_reads.append((row['read1'], row['read2']))
+            _LOG.info('starting chim_svaa_gen.made_chimeric_reads..................................')
+            for index,row in chim_svaa_gen.made_chimeric_reads.iterrows():
+                row['read1'].finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                row['read2'].finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                read1 = row['read1']
+                _LOG.info(read1.name)
+                properly_paired_reads.append((row['read1'], row['read2']))
 
     _LOG.info(f"Contig fastq(s) written in: {(time.time() - t)/60:.2f} m")
 

@@ -7,14 +7,14 @@ fragment_mean: .
 fragment_st_dev: .
 
 produce_bam: .
-produce_vcf: True
+produce_vcf: False
 produce_fastq: True
 
-error_model: .
+error_model: seq_err_model_woplochi.p.gz
 mutation_model: .
 fragment_model: SRR622461.pickle.gz
 
-avg_seq_error: 0.0
+avg_seq_error: .
 rescale_qualities: .
 quality_offset: .
 include_vcf: .
@@ -25,3 +25,4 @@ mutation_bed: .
 rng_seed: 1
 min_mutations: .
 overwrite_output: True
+make_chimeric: True
