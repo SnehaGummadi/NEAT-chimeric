@@ -16,13 +16,11 @@ _LOG = logging.getLogger(__name__)
 
 # Main class
 class GenChimericReads:
-    def __init__(self, in_read1, in_read2, in_read12, left, right, tename, count):
+    def __init__(self, in_read12, left, right, tename, count):
         header = ['read1', 'read2', ]
         self.made_chimeric_reads = pd.DataFrame(columns=header)
         self.chim_read_count = count
         self.tename = tename
-        self.in_read1 = in_read1
-        self.in_read2 = in_read2
         self.in_read12 = in_read12
         self.left = left
         self.right = right
