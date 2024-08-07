@@ -432,105 +432,70 @@ def generate_reads(reference: SeqRecord,
                         #rannum = random.randint(1,100)
                         #if rannum < 25:
                             sent_to_chimeric = True
+
+                            og_name_1 = read_1.name
+                            og_name_2 = read_2.name
+                            read_1.name = f"{og_name_1[:-2]}-{row['name']}-right/1"
+                            read_2.name = f"{og_name_2[:-2]}-{row['name']}-right/2"
+
                             if 'line' in row['name']:
-                                og_name_1 = read_1.name
-                                og_name_2 = read_2.name
-                                read_1.name = f"{og_name_1[:-2]}-line-left/1"
-                                read_2.name = f"{og_name_2[:-2]}-line-left/2"
                                 left_line.loc[len(left_line)] = [read_1,read_2]
                             elif 'hervk' in row['name']:
-                                og_name_1 = read_1.name
-                                og_name_2 = read_2.name
-                                read_1.name = f"{og_name_1[:-2]}-hervk-left/1"
-                                read_2.name = f"{og_name_2[:-2]}-hervk-left/2"
                                 left_hervk.loc[len(left_hervk)] = [read_1,read_2]
                             elif 'svaa' in row['name']:
-                                og_name_1 = read_1.name
-                                og_name_2 = read_2.name
-                                read_1.name = f"{og_name_1[:-2]}-svaa-left/1"
-                                read_2.name = f"{og_name_2[:-2]}-svaa-left/2"
                                 left_svaa.loc[len(left_svaa)] = [read_1,read_2]
             
-                    if(max(read_1.position,row['start']) <= min(read_1.end_point,row['end'])):
+                    if(max(read_1.position,row['start']) <= min(read_1.end_point,row['end'])) and not (max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])):
                         # TE is either partially or entirely in read 1
-                        which_read = 1
                         sent_to_chimeric = False
                         read_1.insertion_in_read = True
                         if(read_1.position >= row['start'] and read_1.end_point <= row['end']):
                             # TE spans read 1
                             span_1 = True
+                            read_1.name = f"{read_1.name[:-2]}-span1/1"
+                            read_2.name = f"{read_2.name[:-2]}-span1/2"
+                        # Write the start index of each read to the read name + and that read 1 had the TE
+                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read1-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read1-{row['name']}/2"
             
                     # if(read_1.end_point < row['start'] and row['end'] < read_2.position):
                         # TE is entirely between read 1 and read 2
                         # nothing to do
                     
-                    if(max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])):
+                    if(max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])) and not (max(read_1.position,row['start']) <= min(read_1.end_point,row['end'])):
                         # TE is entirely or paritially within read 2
-                        which_read = 2
                         sent_to_chimeric = False
                         read_2.insertion_in_read = True
                         if(read_2.position >= row['start'] and read_2.end_point <= row['end']):
                             # TE spans read 2
                             span_2 = True
+                            read_1.name = f"{read_1.name[:-2]}-span2/1"
+                            read_2.name = f"{read_2.name[:-2]}-span2/2"
+                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read2-{row['name']}/1"
+                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read2-{row['name']}/2"
                     
                     if(row['start'] > read_2.end_point+200 and row['start'] < read_2.end_point+1000):
                         # TE is entirely to the right of read 2
                         #rannum = random.randint(1,100)
                         #if rannum < 75:
                             sent_to_chimeric = True
+                            og_name_1 = read_1.name
+                            og_name_2 = read_2.name
+                            read_1.name = f"{og_name_1[:-2]}-{row['name']}-right/1"
+                            read_2.name = f"{og_name_2[:-2]}-{row['name']}-right/2"
+
                             if 'line' in row['name']:
-                                og_name_1 = read_1.name
-                                og_name_2 = read_2.name
-                                read_1.name = f"{og_name_1[:-2]}-line-right/1"
-                                read_2.name = f"{og_name_2[:-2]}-line-right/2"
                                 right_line.loc[len(right_line)] = [read_1,read_2]
                             elif 'hervk' in row['name']:
-                                og_name_1 = read_1.name
-                                og_name_2 = read_2.name
-                                read_1.name = f"{og_name_1[:-2]}-hervk-right/1"
-                                read_2.name = f"{og_name_2[:-2]}-hervk-right/2"
                                 right_hervk.loc[len(right_hervk)] = [read_1,read_2]
                             elif 'svaa' in row['name']:
-                                og_name_1 = read_1.name
-                                og_name_2 = read_2.name
-                                read_1.name = f"{og_name_1[:-2]}-svaa-right/1"
-                                read_2.name = f"{og_name_2[:-2]}-svaa-right/2"
                                 right_svaa.loc[len(right_svaa)] = [read_1,read_2]
                     
-                    if(max(read_1.position,row['start']) <= min(read_1.end_point,row['end']) and
-                       max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])):
+                    if(max(read_1.position,row['start']) <= min(read_1.end_point,row['end'])) and (max(read_2.position,row['start']) <= min(read_2.end_point,row['end'])):
                         # TE is present entirely or partially in both read 1 and read 2
-                        which_read = 3
                         sent_to_chimeric = True
                         read_1.insertion_in_read = True
                         read_2.insertion_in_read = True
-                    
-                    if which_read == 1:
-                        if span_1 is True:
-                            read_1.name = f"{read_1.name[:-2]}-span1/1"
-                            read_2.name = f"{read_2.name[:-2]}-span1/2"
-                        # Write the start index of each read to the read name + and that read 1 had the TE
-                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read1-{row['name']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read1-{row['name']}/2"
-                        if 'line' in row['name']:
-                            line_read1.loc[len(line_read1)] = [read_1,read_2]
-                        elif 'hervk' in row['name']:
-                            hervk_read1.loc[len(hervk_read1)] = [read_1,read_2]
-                        elif 'svaa' in row['name']:
-                            svaa_read1.loc[len(svaa_read1)] = [read_1,read_2]
-                    elif which_read == 2:
-                        if span_2 is True:
-                            read_1.name = f"{read_1.name[:-2]}-span2/1"
-                            read_2.name = f"{read_2.name[:-2]}-span2/2"
-                        read_1.name = f"{read_1.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read2-{row['name']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-start1-{read_1.position}-start2-{read_2.position}-in-read2-{row['name']}/2"
-                        if 'line' in row['name']:
-                            line_read2.loc[len(line_read2)] = [read_1,read_2]
-                        elif 'hervk' in row['name']:
-                            hervk_read2.loc[len(hervk_read2)] = [read_1,read_2]
-                        elif 'svaa' in row['name']:
-                            svaa_read2.loc[len(svaa_read2)] = [read_1,read_2]
-                    elif which_read == 3:
                         if span_1 is True:
                             read_1.name = f"{read_1.name[:-2]}-span1/1"
                             read_2.name = f"{read_2.name[:-2]}-span1/2"
@@ -545,7 +510,7 @@ def generate_reads(reference: SeqRecord,
                             hervk_read12.loc[len(hervk_read12)] = [read_1,read_2]
                         elif 'svaa' in row['name']:
                             svaa_read12.loc[len(svaa_read12)] = [read_1,read_2]
-                    which_read = -1
+                    
 
                 # Send the reads to temp fastqs
                 # This is assuming that we require paired end reads otherwise will fail here
@@ -566,9 +531,9 @@ def generate_reads(reference: SeqRecord,
         _LOG.debug("Generating chimeric reads")
         start = len(reads)
         # Create instance of the GenChimericReads class for each TE
-        chim_line_gen = GenChimericReads(line_read1,line_read2,line_read12,left_line,right_line,'line',start)
-        chim_hervk_gen = GenChimericReads(hervk_read1,hervk_read2,hervk_read12,left_hervk,right_hervk,'hervk',chim_line_gen.chim_read_count)
-        chim_svaa_gen = GenChimericReads(svaa_read1,svaa_read2,svaa_read12,left_svaa,right_svaa,'svaa',chim_hervk_gen.chim_read_count)
+        chim_line_gen = GenChimericReads(line_read12,left_line,right_line,'line',start)
+        chim_hervk_gen = GenChimericReads(hervk_read12,left_hervk,right_hervk,'hervk',chim_line_gen.chim_read_count)
+        chim_svaa_gen = GenChimericReads(svaa_read12,left_svaa,right_svaa,'svaa',chim_hervk_gen.chim_read_count)
 
         # Start genchimeric reads func for each object
         chim_line_gen.make_chim_reads()
