@@ -1,6 +1,6 @@
-reference: reference_files/chr18_smallest_line_hervk_svaa.fa
+reference: reference_files/chr18_smallest.fa
 read_len: 101
-coverage: 3
+coverage: 6
 ploidy: 1
 paired_ended: True
 fragment_mean: .
@@ -25,4 +25,5 @@ mutation_bed: .
 rng_seed: 1
 min_mutations: .
 overwrite_output: True
-make_chimeric: True
+make_chimeric: False
+label_tes: .
