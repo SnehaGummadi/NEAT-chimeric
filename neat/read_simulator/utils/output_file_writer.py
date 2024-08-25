@@ -81,6 +81,8 @@ class OutputFileWriter:
         self.paired = options.paired_ended
         self.temporary_dir = options.temp_dir_path
 
+        self.options = options
+
         self.bam_header = bam_header
 
         # Set the file names
@@ -263,15 +265,19 @@ class OutputFileWriter:
             for i in range(num_reads):
                 print(f'{i/num_reads:.2%}', end='\r')
                 current_key = shuffled_paired_keys[i]
-                # reconstruct tho chromosome name
-                # chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
-                # suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
-                # chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
+
+                if self.options.label_tes is None and self.options.make_chimeric is False:
+                    # reconstruct tho chromosome name
+                    chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
+                    suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
+                    chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
+                else:
+                    chrom_name = 'chr18'
                 # 1 here because this is read1
-                read1 = fastq_index_dict['chr18'][1][current_key[0]]
+                read1 = fastq_index_dict[chrom_name][1][current_key[0]]
                 SeqIO.write(read1, fq1, 'fastq')
                 # 2 for read2
-                read2 = fastq_index_dict['chr18'][2][current_key[1]]
+                read2 = fastq_index_dict[chrom_name][2][current_key[1]]
                 SeqIO.write(read2, fq2, 'fastq')
                 if not wrote_r2:
                     wrote_r2 = True

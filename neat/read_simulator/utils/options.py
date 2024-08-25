@@ -116,6 +116,7 @@ class Options(SimpleNamespace):
         self.defs['overwrite_output'] = (bool, False, None, None)
         self.defs['make_chimeric'] = (bool, False, None, None)
         self.defs['label_tes'] = (str, None, 'exists', None)
+        self.defs['target_tes'] = (str, None, 'exists', None)
 
         # Create base variables, for update by the config
         self.reference: str | Path = reference
@@ -149,6 +150,7 @@ class Options(SimpleNamespace):
         self.rng: Generator | None = None
         self.make_chimeric: bool = False
         self.label_tes: str | None = None
+        self.target_tes: str | None = None
 
         # Cancer options (not yet implemented)
         self.cancer: str | Path

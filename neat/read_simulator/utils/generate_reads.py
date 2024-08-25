@@ -274,7 +274,8 @@ def generate_reads(reference: SeqRecord,
 
     # For labeling all TEs in the chr18_smallest
     # read csv file
-    all_tes = pd.read_csv(options.label_tes, sep='\t', header=0)
+    if options.label_tes != None:
+        all_tes = pd.read_csv(options.label_tes, sep='\t', header=0)
 
     # TODO need a way to hash the te start location for faster access but I can't think of a way to do it
     # For now will just iterate through all TEs
@@ -424,7 +425,18 @@ def generate_reads(reference: SeqRecord,
                 else:
                     handle = fq2_single
             
-            if options.label_tes != None and properly_paired:
+            # When we want to target a region to produce 
+            if options.target_tes != None and properly_paired:
+                read_1.finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                read_2.finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                properly_paired_reads.append((read_1, read_2))
+
+            # When we want to label TEs in the reads only.
+            elif options.label_tes != None and properly_paired:
 
                 # Create sub dataframe with the read1 and read2 start and ends in mind
                 sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] <= read_2.end_point)]
@@ -480,7 +492,8 @@ def generate_reads(reference: SeqRecord,
                 )
                 properly_paired_reads.append((read_1, read_2))
 
-            if options.make_chimeric == True and properly_paired:
+            # When we only wanted to make chimeric reads (reads made chimeric labeled)
+            elif options.make_chimeric == True and properly_paired:
                 for index,row in lhs_ins.iterrows():
 
                     # TODO Find optimal distance for read to be made chimeric. Currently at least 200 away from TE
@@ -579,6 +592,15 @@ def generate_reads(reference: SeqRecord,
                         error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
                     )
                     properly_paired_reads.append((read_1, read_2))
+            
+            elif properly_paired:
+                read_1.finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
+                )
+                read_2.finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
+                )
+                properly_paired_reads.append((read_1, read_2))
             elif read1_is_singleton:
                 # This will be the choice for all single-ended reads
                 singletons.append((read_1, None))

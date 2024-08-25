@@ -5,9 +5,11 @@ import time
 import logging
 import pickle
 import gzip
+import pandas as pd
 
-from Bio import SeqIO
+from Bio import SeqIO, SeqRecord, Seq
 from pathlib import Path
+import pathlib
 
 from .utils import Options, parse_input_vcf, parse_beds, OutputFileWriter, \
     generate_variants, generate_reads
@@ -139,6 +141,12 @@ def read_simulator_runner(config: str, output: str):
     # Read options file
     options = Options(output, config)
 
+    if options.target_tes != None:
+        _LOG.info(f'Using target_tes file {options.target_tes}.')
+        target_tes_csv = pd.read_csv(options.target_tes, sep='\t', header=0)
+    else:
+        _LOG.info("No file for target_tes given.")
+
     # Validate output
     validate_output_path(output, False, options.overwrite_output)
 
@@ -164,7 +172,26 @@ def read_simulator_runner(config: str, output: str):
 
     # TODO check into SeqIO.index_db()
     reference_index = SeqIO.index(str(options.reference), "fasta")
+
+    records = []
+
+    with open("new_reference.fasta", "w") as new_ref_file:
+        for contig in reference_index:
+            SeqIO.write(reference_index[contig], new_ref_file, "fasta")
+        if options.target_tes != None:
+            for index,row in target_tes_csv.iterrows():
+                start = row['teStart'] - 1000
+                end = row['teEnd'] + 1000
+                te_seq = reference_index['chr18'][start:end]
+                te_seq.id = row['TE']
+                te_seq.description = row['TE']
+                te_seq.name = row['TE']
+                SeqIO.write(te_seq, new_ref_file, "fasta")
+
+    reference_index = SeqIO.index("new_reference.fasta", "fasta")
+
     _LOG.debug("Reference file indexed.")
+
 
     if _LOG.getEffectiveLevel() < 20:
         count = 0
@@ -235,6 +262,9 @@ def read_simulator_runner(config: str, output: str):
                                               bam_header=bam_header)
         output_file_writer_cancer = None
 
+    print(options.target_tes)
+    # Get target TEs if given
+    
     _LOG.debug(f'Output files ready for writing.')
 
     """
@@ -242,7 +272,9 @@ def read_simulator_runner(config: str, output: str):
     """
     _LOG.info("Beginning simulation.")
 
+    
     breaks = find_file_breaks(reference_index)
+
 
     _LOG.debug("Input reference partitioned for run")
 
