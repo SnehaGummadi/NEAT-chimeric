@@ -180,8 +180,8 @@ def read_simulator_runner(config: str, output: str):
             SeqIO.write(reference_index[contig], new_ref_file, "fasta")
         if options.target_tes != None:
             for index,row in target_tes_csv.iterrows():
-                start = row['teStart'] - 1000
-                end = row['teEnd'] + 1000
+                start = row['teStart'] - 100
+                end = row['teEnd'] + 100
                 te_seq = reference_index['chr18'][start:end]
                 te_seq.id = row['TE']
                 te_seq.description = row['TE']
