@@ -426,7 +426,7 @@ def generate_reads(reference: SeqRecord,
                     handle = fq2_single
             
             # When we want to target a region to produce 
-            if options.target_tes != None and properly_paired:
+            if options.target_tes != None and options.label_tes == None and properly_paired:
                 read_1.finalize_read_and_write(
                     error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
                 )
@@ -438,51 +438,53 @@ def generate_reads(reference: SeqRecord,
             # When we want to label TEs in the reads only.
             elif options.label_tes != None and properly_paired:
 
-                # Create sub dataframe with the read1 and read2 start and ends in mind
-                sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] <= read_2.end_point)]
+                # Only label the TEs when we are generating for chromosome 18
+                if reference.id == 'chr18':
+                    # Create sub dataframe with the read1 and read2 start and ends in mind
+                    sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] <= read_2.end_point)]
 
-                for index,row in sub_df.iterrows():
-                    # When the TE definitly does not overlap with the read, just move to the next one
-                    if not max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd']) and not max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd']):
-                        continue
+                    for index,row in sub_df.iterrows():
+                        # When the TE definitly does not overlap with the read, just move to the next one
+                        if not max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd']) and not max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd']):
+                            continue
 
-                    if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])) and not (max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
-                        # TE is either partially or entirely in read 1
-                        sent_to_chimeric = False
-                        read_1.insertion_in_read = True
-                        if(read_1.position >= row['teStart'] and read_1.end_point <= row['teEnd']):
-                            # TE spans read 1
-                            span_1 = True
-                            read_1.name = f"{read_1.name[:-2]}-span1/1"
-                            read_2.name = f"{read_2.name[:-2]}-span1/2"
-                        # Write the start index of each read to the read name + and that read 1 had the TE
-                        read_1.name = f"{read_1.name[:-2]}-in-read1-{row['TE']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-in-read1-{row['TE']}/2"
-                    
-                    if(max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])) and not (max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])):
-                        # TE is entirely or paritially within read 2
-                        sent_to_chimeric = False
-                        read_2.insertion_in_read = True
-                        if(read_2.position >= row['teStart'] and read_2.end_point <= row['teEnd']):
-                            # TE spans read 2
-                            span_2 = True
-                            read_1.name = f"{read_1.name[:-2]}-span2/1"
-                            read_2.name = f"{read_2.name[:-2]}-span2/2"
-                        read_1.name = f"{read_1.name[:-2]}-in-read2-{row['TE']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-in-read2-{row['TE']}/2"
-                    
-                    if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])) and (max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
-                        sent_to_chimeric = False
-                        read_1.insertion_in_read = True
-                        read_2.insertion_in_read = True
-                        if span_1 is True:
-                            read_1.name = f"{read_1.name[:-2]}-span1/1"
-                            read_2.name = f"{read_2.name[:-2]}-span1/2"
-                        if span_2 is True:
-                            read_1.name = f"{read_1.name[:-2]}-span2/1"
-                            read_2.name = f"{read_2.name[:-2]}-span2/2"
-                        read_1.name = f"{read_1.name[:-2]}-in-read-1-2-{row['TE']}/1"
-                        read_2.name = f"{read_2.name[:-2]}-in-read-1-2-{row['TE']}/2"
+                        if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])) and not (max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
+                            # TE is either partially or entirely in read 1
+                            sent_to_chimeric = False
+                            read_1.insertion_in_read = True
+                            if(read_1.position >= row['teStart'] and read_1.end_point <= row['teEnd']):
+                                # TE spans read 1
+                                span_1 = True
+                                read_1.name = f"{read_1.name[:-2]}-span1/1"
+                                read_2.name = f"{read_2.name[:-2]}-span1/2"
+                            # Write the start index of each read to the read name + and that read 1 had the TE
+                            read_1.name = f"{read_1.name[:-2]}-in-read1-{row['TE']}/1"
+                            read_2.name = f"{read_2.name[:-2]}-in-read1-{row['TE']}/2"
+                        
+                        if(max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])) and not (max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])):
+                            # TE is entirely or paritially within read 2
+                            sent_to_chimeric = False
+                            read_2.insertion_in_read = True
+                            if(read_2.position >= row['teStart'] and read_2.end_point <= row['teEnd']):
+                                # TE spans read 2
+                                span_2 = True
+                                read_1.name = f"{read_1.name[:-2]}-span2/1"
+                                read_2.name = f"{read_2.name[:-2]}-span2/2"
+                            read_1.name = f"{read_1.name[:-2]}-in-read2-{row['TE']}/1"
+                            read_2.name = f"{read_2.name[:-2]}-in-read2-{row['TE']}/2"
+                        
+                        if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])) and (max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
+                            sent_to_chimeric = False
+                            read_1.insertion_in_read = True
+                            read_2.insertion_in_read = True
+                            if span_1 is True:
+                                read_1.name = f"{read_1.name[:-2]}-span1/1"
+                                read_2.name = f"{read_2.name[:-2]}-span1/2"
+                            if span_2 is True:
+                                read_1.name = f"{read_1.name[:-2]}-span2/1"
+                                read_2.name = f"{read_2.name[:-2]}-span2/2"
+                            read_1.name = f"{read_1.name[:-2]}-in-read-1-2-{row['TE']}/1"
+                            read_2.name = f"{read_2.name[:-2]}-in-read-1-2-{row['TE']}/2"
 
                 read_1.finalize_read_and_write(
                     error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
