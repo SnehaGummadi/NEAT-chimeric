@@ -266,11 +266,13 @@ class OutputFileWriter:
                 print(f'{i/num_reads:.2%}', end='\r')
                 current_key = shuffled_paired_keys[i]
 
-                if self.options.label_tes is None and self.options.make_chimeric is False:
-                    # reconstruct tho chromosome name
-                    chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
-                    suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
-                    chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
+                if self.options.target_tes is not None:
+                    if 'chr18' in current_key[0]:
+                        chrom_name = 'chr18'
+                    else:
+                        # reconstruct tho chromosome name
+                        chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
+                        chrom_name = chrom_name_with_rdnm.split('_')[0] + "_" + chrom_name_with_rdnm.split('_')[1]
                 else:
                     chrom_name = 'chr18'
                 # 1 here because this is read1
