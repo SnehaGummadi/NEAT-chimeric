@@ -14,7 +14,7 @@ dependencies:
   - scipy
   - libgcc=5.2.0
   - htslib
-  - pip:
-    - pysam
-    - frozendict
-    - poetry>=1.3.*
+  - pysam
+  - frozendict
+  - poetry
+  - pandas
