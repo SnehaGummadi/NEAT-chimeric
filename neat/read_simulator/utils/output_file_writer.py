@@ -234,13 +234,13 @@ class OutputFileWriter:
             file_index_r2 = SeqIO.index(str(file_pair[1]), 'fastq')
             if file_index_r1:
                 file_index = file_index_r1
-                contig_name = Path(file_pair[0]).name.removesuffix('_r1_single.fq.bgz')
             elif file_index_r2:
                 file_index = file_index_r2
-                contig_name = Path(file_pair[1]).name.removesuffix('_r2_single.fq.bgz')
             else:
                 # No singletons for this contig, so move on
                 continue
+
+            contig_name = "chr18"
 
             if contig_name not in fastq_index_dict:
                 fastq_index_dict[contig_name] = {}
@@ -288,8 +288,11 @@ class OutputFileWriter:
             for j in range(len(shuffled_singleton_keys)):
                 current_key = shuffled_singleton_keys[j]
                 chrom_name_with_rdnm = current_key.removeprefix("NEAT-generated_").split('/')[0]
-                suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
-                chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
+                if "chr18" in chrom_name_with_rdnm:
+                    chrom_name = "chr18"
+                else:
+                    suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
+                    chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
                 read = fastq_index_dict[chrom_name][3][current_key]
                 SeqIO.write(read, fq1, 'fastq')
 

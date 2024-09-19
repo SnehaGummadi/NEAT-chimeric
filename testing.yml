@@ -1,8 +1,8 @@
 reference: reference_files/chr18_smallest.fa
-read_len: 101
-coverage: 6
+read_len: 50
+coverage: 3
 ploidy: 1
-paired_ended: True
+paired_ended: False
 fragment_mean: .
 fragment_st_dev: .
 
@@ -10,7 +10,7 @@ produce_bam: .
 produce_vcf: False
 produce_fastq: True
 
-error_model: seq_err_model_woplochi.p.gz
+error_model: .
 mutation_model: .
 fragment_model: SRR622461.pickle.gz
 
