@@ -1,0 +1,19 @@
+tasks:
+  - name: conda set up
+
+    init: |
+      bash Miniconda3-latest-Linux-x86_64.sh -b -p "~/workspace/NEAT-chimeric/miniconda3"
+      source ~/workspace/NEAT-chimeric/miniconda3/bin/activate
+      ~/workspace/NEAT-chimeric/miniconda3/bin/conda init bash
+      source ~/.bashrc
+      conda install conda-forge::mamba
+      mamba env create -f environment.yml -n neat
+      conda activate neat
+      poetry install
+    
+    command: |
+      source ~/.bashrc && conda activate neat
+
+vscode:
+  extensions:
+    - ms-python.python
