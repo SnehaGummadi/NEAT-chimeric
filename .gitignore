@@ -5,7 +5,11 @@
 /.vscode/
 /.idea/
 *_NEAT.log
-*.fq.gz
-*.fq
+*.fastq.gz
+*.fastq
 *.vcf.gz
 *.vcf
+SRR622461*
+*.csv
+Homo_sapiens.GRCh38.111.gtf
+seq_err_model_woplochi.p.gz
