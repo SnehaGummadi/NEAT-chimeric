@@ -59,6 +59,7 @@ def cover_dataset(
     read_count = 0
     loop_count = 0
     while read_count <= number_reads:
+        print(f'{read_count/number_reads:.2%}', end='\r')
         start = 0
         loop_count += 1
         # if loop_count > options.coverage * 100:
