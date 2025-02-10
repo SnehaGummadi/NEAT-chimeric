@@ -281,6 +281,9 @@ def generate_reads(reference: SeqRecord,
     # TODO need a way to hash the te start location for faster access but I can't think of a way to do it
     # For now will just iterate through all TEs
 
+    # num of filterout out reads
+    filterout = 0
+    _LOG.info(f"Number of reads expected to be generated: {len(reads)}")
 
     print(f'reference_id: {reference.id}, chrom: {chrom}, ref_start: {ref_start}')
 
@@ -319,9 +322,13 @@ def generate_reads(reference: SeqRecord,
             if not found_read1:
                 # Filter out this read
                 read1 = (0, 0)
+                _LOG.info(f"Filtered out read1: {i}")
+                filterout += 1
             if not found_read2:
                 # Note that for single ended reads, it will never find read2 and this does nothing (it's already (0,0))
                 read2 = (0, 0)
+                _LOG.info(f"Filtered out read2: {i}")
+                filterout += 1
 
             # If there was no discard bed, this will complete very quickly
             discard_read1, discard_read2 = False, False
@@ -363,6 +370,7 @@ def generate_reads(reference: SeqRecord,
                 else:
                     properly_paired = True
 
+            # TODO add the number of reads we already have...
             read_name = f'{base_name}_{str(i+1)}'
 
             # If the other read is marked as a singleton, then this one was filtered out, or these are single-ended
@@ -425,7 +433,7 @@ def generate_reads(reference: SeqRecord,
                     handle = fq2_paired
                 else:
                     handle = fq2_single
-            
+
             # When we want to target a region to produce 
             if options.target_tes != None and options.label_tes == None and properly_paired:
                 read_1.finalize_read_and_write(
@@ -442,18 +450,18 @@ def generate_reads(reference: SeqRecord,
                 # Only label the TEs when we are generating for chromosome 18
                 if reference.id == 'chr18':
                     # Create sub dataframe with the read1 and read2 start and ends in mind
-                    sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] <= read_2.end_point)]
+                    sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] - 1 <= read_2.end_point)]
 
                     for index,row in sub_df.iterrows():
                         # When the TE definitly does not overlap with the read, just move to the next one
-                        if not max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd']) and not max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd']):
+                        if not max(read_1.position,row['teStart'] - 1) <= min(read_1.end_point,row['teEnd']) and not max(read_2.position,row['teStart'] - 1) <= min(read_2.end_point,row['teEnd']):
                             continue
 
-                        if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])) and not (max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
+                        if(max(read_1.position,row['teStart'] - 1) <= min(read_1.end_point,row['teEnd'])) and not (max(read_2.position,row['teStart'] - 1) <= min(read_2.end_point,row['teEnd'])):
                             # TE is either partially or entirely in read 1
                             sent_to_chimeric = False
                             read_1.insertion_in_read = True
-                            if(read_1.position >= row['teStart'] and read_1.end_point <= row['teEnd']):
+                            if(read_1.position >= row['teStart'] - 1 and read_1.end_point <= row['teEnd']):
                                 # TE spans read 1
                                 span_1 = True
                                 read_1.name = f"{read_1.name[:-2]}-span1/1"
@@ -462,11 +470,11 @@ def generate_reads(reference: SeqRecord,
                             read_1.name = f"{read_1.name[:-2]}-in-read1-{row['TE']}/1"
                             read_2.name = f"{read_2.name[:-2]}-in-read1-{row['TE']}/2"
                         
-                        if(max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])) and not (max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])):
+                        if(max(read_2.position,row['teStart'] - 1) <= min(read_2.end_point,row['teEnd'])) and not (max(read_1.position,row['teStart'] - 1) <= min(read_1.end_point,row['teEnd'])):
                             # TE is entirely or paritially within read 2
                             sent_to_chimeric = False
                             read_2.insertion_in_read = True
-                            if(read_2.position >= row['teStart'] and read_2.end_point <= row['teEnd']):
+                            if(read_2.position >= row['teStart'] - 1 and read_2.end_point <= row['teEnd']):
                                 # TE spans read 2
                                 span_2 = True
                                 read_1.name = f"{read_1.name[:-2]}-span2/1"
@@ -474,7 +482,7 @@ def generate_reads(reference: SeqRecord,
                             read_1.name = f"{read_1.name[:-2]}-in-read2-{row['TE']}/1"
                             read_2.name = f"{read_2.name[:-2]}-in-read2-{row['TE']}/2"
                         
-                        if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])) and (max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
+                        if(max(read_1.position,row['teStart'] - 1) <= min(read_1.end_point,row['teEnd'])) and (max(read_2.position,row['teStart'] - 1) <= min(read_2.end_point,row['teEnd'])):
                             sent_to_chimeric = False
                             read_1.insertion_in_read = True
                             read_2.insertion_in_read = True
@@ -717,6 +725,7 @@ def generate_reads(reference: SeqRecord,
                 _LOG.info(read1.name)
                 properly_paired_reads.append((row['read1'], row['read2']))
 
+    _LOG.info(f"Number of reads filtered out: {filterout}")
     _LOG.info(f"Contig fastq(s) written in: {(time.time() - t)/60:.2f} m")
 
     if options.produce_bam:
