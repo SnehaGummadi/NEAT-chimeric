@@ -117,6 +117,7 @@ class Options(SimpleNamespace):
         self.defs['make_chimeric'] = (bool, False, None, None)
         self.defs['label_tes'] = (str, None, 'exists', None)
         self.defs['target_tes'] = (str, None, 'exists', None)
+        self.defs['num_of_cpus'] = (int, 1, None, None)
 
         # Create base variables, for update by the config
         self.reference: str | Path = reference
@@ -151,6 +152,7 @@ class Options(SimpleNamespace):
         self.make_chimeric: bool = False
         self.label_tes: str | None = None
         self.target_tes: str | None = None
+        self.num_of_cpus: int = 1
 
         # Cancer options (not yet implemented)
         self.cancer: str | Path

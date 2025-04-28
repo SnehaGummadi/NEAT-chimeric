@@ -3,16 +3,16 @@ read_len: 101
 coverage: 6
 ploidy: 1
 paired_ended: True
-fragment_mean: .
-fragment_st_dev: .
+fragment_mean: 300
+fragment_st_dev: 30
 
 produce_bam: .
 produce_vcf: False
 produce_fastq: True
 
-error_model: seq_err_model_woplochi.p.gz
+error_model: .
 mutation_model: .
-fragment_model: SRR622461.pickle.gz
+fragment_model: .
 
 avg_seq_error: .
 rescale_qualities: .
@@ -27,3 +27,4 @@ min_mutations: .
 overwrite_output: True
 make_chimeric: False
 label_tes: .
+num_of_cpus: 1

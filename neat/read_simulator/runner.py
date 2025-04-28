@@ -312,6 +312,7 @@ def read_simulator_runner(config: str, output: str):
         else:
             max_qual_score = max(seq_error_model_1.quality_scores)
 
+        # Generating variants takes 0 min, when mutation rate is 0
         local_variants = generate_variants(reference=local_reference,
                                            mutation_rate_regions=mutation_rate_dict[contig],
                                            existing_variants=input_variants,
@@ -323,6 +324,8 @@ def read_simulator_runner(config: str, output: str):
         local_variant_files[contig] = local_variants
 
         if options.produce_fastq or options.produce_bam:
+            # read1_fastq_paired, read1_fastq_single, read2_fastq_paired, read2_fastq_single
+            # ^ will be a list of the files
             read1_fastq_paired, read1_fastq_single, read2_fastq_paired, read2_fastq_single = \
                 generate_reads(local_reference,
                                local_bam_pickle_file,
@@ -337,8 +340,9 @@ def read_simulator_runner(config: str, output: str):
                                options,
                                contig)
 
-            contig_temp_fastqs = ((read1_fastq_paired, read2_fastq_paired), (read1_fastq_single, read2_fastq_single))
-            fastq_files.append(contig_temp_fastqs)
+            for i in range(len(read1_fastq_paired)):
+                contig_temp_fastqs = ((read1_fastq_paired[i], read2_fastq_paired[i]), (read1_fastq_single[i], read2_fastq_single[i]))
+                fastq_files.append(contig_temp_fastqs)
             if options.produce_bam:
                 sam_reads_files.append(local_bam_pickle_file)
 

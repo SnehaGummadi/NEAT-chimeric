@@ -210,16 +210,16 @@ class OutputFileWriter:
             paired_file_names, singleton_file_names = coupled_files
             paired_files.append(paired_file_names)
             singleton_files.append(singleton_file_names)
+        
+        _LOG.info(f"fastq_files = {fastq_files}")
 
         # Index the temp paired-ended fastqs
         for file_pair in paired_files:
             file1_index = SeqIO.index(str(file_pair[0]), 'fastq')
             file2_index = SeqIO.index(str(file_pair[1]), 'fastq')
 
-            print("was able to index")
-
             # Reconstruct the name of the reads
-            contig_name = Path(file_pair[0]).name.removesuffix('_r1_paired.fq.bgz')
+            contig_name = Path(file_pair[0]).name.split('_r')[0]
             # Either both will have data, or neither, so checking one is sufficient
             if file1_index:
                 if contig_name not in fastq_index_dict:
@@ -228,16 +228,18 @@ class OutputFileWriter:
                 fastq_index_dict[contig_name] = {1: file1_index, 2: file2_index}
                 paired_keys.extend(list(zip(file1_index, file2_index)))
 
+        _LOG.info(f"fastq_index_dict keys = {fastq_index_dict.keys()}")
+
         # Index the singletons, or for single-ended reads, all reads
         for file_pair in singleton_files:
             file_index_r1 = SeqIO.index(str(file_pair[0]), 'fastq')
             file_index_r2 = SeqIO.index(str(file_pair[1]), 'fastq')
             if file_index_r1:
                 file_index = file_index_r1
-                contig_name = Path(file_pair[0]).name.removesuffix('_r1_single.fq.bgz')
+                contig_name = Path(file_pair[0]).name.split('_r')[0]
             elif file_index_r2:
                 file_index = file_index_r2
-                contig_name = Path(file_pair[1]).name.removesuffix('_r2_single.fq.bgz')
+                contig_name = Path(file_pair[1]).name.split('_r')[0]
             else:
                 # No singletons for this contig, so move on
                 continue
@@ -263,7 +265,8 @@ class OutputFileWriter:
             # First we add all properly paired reads
             num_reads = len(shuffled_paired_keys)
             for i in range(num_reads):
-                print(f'{i/num_reads:.2%}', end='\r')
+                if i % 100000 == 0:
+                    _LOG.info(f'{i/num_reads:.2%}')
                 current_key = shuffled_paired_keys[i]
 
                 if self.options.target_tes is not None:
@@ -272,9 +275,10 @@ class OutputFileWriter:
                     else:
                         # reconstruct tho chromosome name
                         chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
-                        chrom_name = chrom_name_with_rdnm.split('_')[0] + "_" + chrom_name_with_rdnm.split('_')[1]
+                        chrom_name = chrom_name_with_rdnm.split('_')[0].split('_')[1]
                 else:
-                    chrom_name = 'chr18'
+                    chrom_name = current_key[0]
+                    chrom_name = chrom_name.split('_')[1] + '_' + chrom_name.split('_')[2]
                 # 1 here because this is read1
                 read1 = fastq_index_dict[chrom_name][1][current_key[0]]
                 SeqIO.write(read1, fq1, 'fastq')
@@ -287,9 +291,8 @@ class OutputFileWriter:
             # Next we add the strays (or all reads, for single-ended)
             for j in range(len(shuffled_singleton_keys)):
                 current_key = shuffled_singleton_keys[j]
-                chrom_name_with_rdnm = current_key.removeprefix("NEAT-generated_").split('/')[0]
-                suffix = re.findall(r"_\d*$", chrom_name_with_rdnm)[0]
-                chrom_name = chrom_name_with_rdnm.removesuffix(suffix)
+                chrom_name_with_rdnm = current_key.split("NEAT-generated_")[1].split('/')[0]
+                chrom_name = chrom_name_with_rdnm.split('_')[0]
                 read = fastq_index_dict[chrom_name][3][current_key]
                 SeqIO.write(read, fq1, 'fastq')
 

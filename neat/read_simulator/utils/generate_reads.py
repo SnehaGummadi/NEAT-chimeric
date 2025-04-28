@@ -5,6 +5,9 @@ import sys
 import pandas as pd
 import random
 
+from collections import deque
+from multiprocessing import Pool
+
 from math import ceil
 from pathlib import Path
 from Bio import SeqRecord
@@ -190,127 +193,56 @@ def overlaps(test_interval: tuple[int, int], comparison_interval: tuple[int, int
            (test_interval[0] <= comparison_interval[0] and test_interval[1] >= comparison_interval[1])
 
 
-def generate_reads(reference: SeqRecord,
-                   reads_pickle: str,
-                   error_model_1: SequencingErrorModel,
-                   error_model_2: SequencingErrorModel | None,
-                   mutation_model: MutationModel,
-                   fraglen_model: FragmentLengthModel,
-                   contig_variants: ContigVariants,
-                   temporary_directory: str | Path,
-                   targeted_regions: list,
-                   discarded_regions: list,
-                   options: Options,
-                   chrom: str,
-                   ref_start: int = 0
-                   ) -> tuple:
-    """
-    This will generate reads given a set of parameters for the run. The reads will output in a fastq.
 
-    :param reference: The reference segment that reads will be drawn from.
-    :param reads_pickle: The file to put the reads generated into, for bam creation.
-    :param error_model_1: The error model for this run, the forward strand
-    :param error_model_2: The error model for this run, reverse strand
-    :param mutation_model: The mutation model for this run
-    :param fraglen_model: The fragment length model for this run
-    :param contig_variants: An object containing all input and randomly generated variants to be included.
-    :param temporary_directory: The directory where to store temporary files for the run
-    :param targeted_regions: A list of regions to target for the run (at a rate defined in the options
-        file or 2% retained by default)
-    :param discarded_regions: A list of regions to discard for the run
-    :param options: The options entered for this run by the user
-    :param chrom: The chromosome this reference segment originates from
-    :param ref_start: The start point for this reference segment. Default is 0 and this is currently not fully
-        implemented, to be used for parallelization.
-    :return: A tuple of the filenames for the temp files created
-    """
-    # Set up files for use. May not need r2, but it's there if we do.
-    # We will separate the properly paired and the singletons.
-    # For now, we are making an assumption that the chromosome name contains no invalid characters for bash file names
-    # such as `*` or `:` even though those are technically allowed.
-    # TODO We'll need to add some checks to ensure that this is the case.
-    chrom_fastq_r1_paired = temporary_directory / f'{chrom}_r1_paired.fq.bgz'
-    chrom_fastq_r1_single = temporary_directory / f'{chrom}_r1_single.fq.bgz'
-    chrom_fastq_r2_paired = temporary_directory / f'{chrom}_r2_paired.fq.bgz'
-    chrom_fastq_r2_single = temporary_directory / f'{chrom}_r2_single.fq.bgz'
+def gen_reads_parallel(reads, 
+                       function_count, 
+                       all_tes,
+                       reference: SeqRecord,
+                       reads_pickle: str,
+                       error_model_1: SequencingErrorModel,
+                       error_model_2: SequencingErrorModel | None,
+                       mutation_model: MutationModel,
+                       fraglen_model: FragmentLengthModel,
+                       contig_variants: ContigVariants,
+                       temporary_directory: str | Path,
+                       targeted_regions: list,
+                       discarded_regions: list,
+                       options: Options,
+                       chrom: str,
+                       ref_start: int = 0
+                       ):
+    
+    # To ensure that the read name is always unique
+    base_name = f'NEAT-generated_{chrom}_{function_count}'
 
-    _LOG.info(f'Sampling reads...')
-    start_time = time.time()
-
-    base_name = f'NEAT-generated_{chrom}'
-
-    _LOG.debug("Covering dataset.")
-    t = time.time()
-    reads = cover_dataset(
-        len(reference),
-        options,
-        fraglen_model,
-    )
-    _LOG.debug(f"Dataset coverage took: {(time.time() - t)/60:.2f} m")
+    chrom_fastq_r1_paired = temporary_directory / f'{chrom}_{function_count}_r1_paired.fq.bgz'
+    chrom_fastq_r1_single = temporary_directory / f'{chrom}_{function_count}_r1_single.fq.bgz'
+    chrom_fastq_r2_paired = temporary_directory / f'{chrom}_{function_count}_r2_paired.fq.bgz'
+    chrom_fastq_r2_single = temporary_directory / f'{chrom}_{function_count}_r2_single.fq.bgz'
 
     # These will hold the values as inserted.
     properly_paired_reads = []
     singletons = []
 
-    """
-                for line_hervk_svaa
-                line at 2573000 - 2579053
-                hervk at 3461053 - 3468589
-                sva_a at 9152589 - 9153976
-
-                for alu_y_y_sz_jb
-                aluY at 811000 - 811311
-                aluY at 2573311 - 2573622
-                aluSz at 5294122 - 5294434
-                aluJb at 9139934 - 9140246
-                """
-    column = ['name','start','end']
-    lhs_data = [['line',2573000,2579053],['hervk',3461053,3468589],['svaa',9152589,9153976]]
-    alu_data = [['y1',811000,811311],['y2',2573311,2573622],['sz',5294122,5294434],['jb',9139934,9140246]]
-    lhs_ins = pd.DataFrame(lhs_data,columns=column)
-    alu_ins = pd.DataFrame(alu_data,columns=column)
-
-    read_column = ['read1','read2']
-    left_line = pd.DataFrame(columns=read_column)
-    right_line = pd.DataFrame(columns=read_column)
-    line_read12 = pd.DataFrame(columns=read_column)
-
-    left_hervk = pd.DataFrame(columns=read_column)
-    right_hervk = pd.DataFrame(columns=read_column)
-    hervk_read12 = pd.DataFrame(columns=read_column)
-
-    left_svaa = pd.DataFrame(columns=read_column)
-    right_svaa = pd.DataFrame(columns=read_column)
-    svaa_read12 = pd.DataFrame(columns=read_column)
-
-    # For labeling all TEs in the chr18_smallest
-    # read csv file
-    if options.label_tes != None:
-        all_tes = pd.read_csv(options.label_tes, sep='\t', header=0)
-
-    # TODO need a way to hash the te start location for faster access but I can't think of a way to do it
-    # For now will just iterate through all TEs
-
-    # num of filterout out reads
-    filterout = 0
-    _LOG.info(f"Number of reads expected to be generated: {len(reads)}")
-
-    print(f'reference_id: {reference.id}, chrom: {chrom}, ref_start: {ref_start}')
-
-    _LOG.debug("Writing fastq(s) and optional tsam, if indicated")
-    t = time.time()
     with (
         open_output(chrom_fastq_r1_paired) as fq1_paired,
         open_output(chrom_fastq_r1_single) as fq1_single,
         open_output(chrom_fastq_r2_paired) as fq2_paired,
         open_output(chrom_fastq_r2_single) as fq2_single
     ):
+        r1_singleton_read_count = 0
+        r2_singleton_read_count = 0
+
+        _LOG.info(f"Processing chunk {function_count} which has {len(reads)} reads")
+
+        filterout = 0
 
         for i in range(len(reads)):
             sent_to_chimeric = False
             span_1 = False
             span_2 = False
-            print(f'{i/len(reads):.2%}', end='\r')
+
+            #print(f'{i/len(reads):.2%}', end='\r')
             # First thing we'll do is check to see if this read is filtered out by a bed file
             read1, read2 = (reads[i][0], reads[i][1]), (reads[i][2], reads[i][3])
             found_read1, found_read2 = False, False
@@ -332,12 +264,12 @@ def generate_reads(reference: SeqRecord,
             if not found_read1:
                 # Filter out this read
                 read1 = (0, 0)
-                _LOG.info(f"Filtered out read1: {i}")
+                
                 filterout += 1
             if not found_read2:
                 # Note that for single ended reads, it will never find read2 and this does nothing (it's already (0,0))
                 read2 = (0, 0)
-                _LOG.info(f"Filtered out read2: {i}")
+                
                 filterout += 1
 
             # If there was no discard bed, this will complete very quickly
@@ -373,9 +305,11 @@ def generate_reads(reference: SeqRecord,
                 properly_paired = False
                 if not any(read2):
                     # Note that this includes all single ended reads that passed filter
+                    r1_singleton_read_count += 1
                     read1_is_singleton = True
                 elif not any(read1):
                     # read1 got filtered out
+                    r2_singleton_read_count += 1
                     read2_is_singleton = True
                 else:
                     properly_paired = True
@@ -455,10 +389,10 @@ def generate_reads(reference: SeqRecord,
                 properly_paired_reads.append((read_1, read_2))
 
             # When we want to label TEs in the reads only.
-            elif options.label_tes != None and properly_paired:
+            elif options.label_tes is not None and properly_paired:
 
                 # Only label the TEs when we are generating for chromosome 18
-                if reference.id == 'chr18':
+                if reference.id == 'chr1':
                     # Create sub dataframe with the read1 and read2 start and ends in mind
                     sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] - 1 <= read_2.end_point)]
 
@@ -735,20 +669,177 @@ def generate_reads(reference: SeqRecord,
                 _LOG.info(read1.name)
                 properly_paired_reads.append((row['read1'], row['read2']))
 
+    _LOG.info(f"Completed chunk number: {function_count}, making {len(properly_paired_reads)}, which filtered out {filterout} reads")
+    _LOG.info(f"In chunck {function_count}: r1 singltons = {r1_singleton_read_count} and r2 singletons = {r2_singleton_read_count}")
+
+    return chrom_fastq_r1_paired, chrom_fastq_r1_single, chrom_fastq_r2_paired, chrom_fastq_r2_single
+
+def generate_reads(reference: SeqRecord,
+                   reads_pickle: str,
+                   error_model_1: SequencingErrorModel,
+                   error_model_2: SequencingErrorModel | None,
+                   mutation_model: MutationModel,
+                   fraglen_model: FragmentLengthModel,
+                   contig_variants: ContigVariants,
+                   temporary_directory: str | Path,
+                   targeted_regions: list,
+                   discarded_regions: list,
+                   options: Options,
+                   chrom: str,
+                   ref_start: int = 0
+                   ) -> tuple:
+    """
+    This will generate reads given a set of parameters for the run. The reads will output in a fastq.
+
+    :param reference: The reference segment that reads will be drawn from.
+    :param reads_pickle: The file to put the reads generated into, for bam creation.
+    :param error_model_1: The error model for this run, the forward strand
+    :param error_model_2: The error model for this run, reverse strand
+    :param mutation_model: The mutation model for this run
+    :param fraglen_model: The fragment length model for this run
+    :param contig_variants: An object containing all input and randomly generated variants to be included.
+    :param temporary_directory: The directory where to store temporary files for the run
+    :param targeted_regions: A list of regions to target for the run (at a rate defined in the options
+        file or 2% retained by default)
+    :param discarded_regions: A list of regions to discard for the run
+    :param options: The options entered for this run by the user
+    :param chrom: The chromosome this reference segment originates from
+    :param ref_start: The start point for this reference segment. Default is 0 and this is currently not fully
+        implemented, to be used for parallelization.
+    :return: A tuple of the filenames for the temp files created
+    """
+    # Set up files for use. May not need r2, but it's there if we do.
+    # We will separate the properly paired and the singletons.
+    # For now, we are making an assumption that the chromosome name contains no invalid characters for bash file names
+    # such as `*` or `:` even though those are technically allowed.
+    # TODO We'll need to add some checks to ensure that this is the case.
+    
+
+    _LOG.info(f'Sampling reads...')
+    start_time = time.time()
+
+    _LOG.debug("Covering dataset.")
+    t = time.time()
+    reads = cover_dataset(
+        len(reference),
+        options,
+        fraglen_model,
+    )
+    _LOG.info(f"Dataset coverage took: {(time.time() - t)/60:.2f} m")
+
+
+
+    """
+                for line_hervk_svaa
+                line at 2573000 - 2579053
+                hervk at 3461053 - 3468589
+                sva_a at 9152589 - 9153976
+
+                for alu_y_y_sz_jb
+                aluY at 811000 - 811311
+                aluY at 2573311 - 2573622
+                aluSz at 5294122 - 5294434
+                aluJb at 9139934 - 9140246
+                """
+    column = ['name','start','end']
+    lhs_data = [['line',2573000,2579053],['hervk',3461053,3468589],['svaa',9152589,9153976]]
+    alu_data = [['y1',811000,811311],['y2',2573311,2573622],['sz',5294122,5294434],['jb',9139934,9140246]]
+    lhs_ins = pd.DataFrame(lhs_data,columns=column)
+    alu_ins = pd.DataFrame(alu_data,columns=column)
+
+    read_column = ['read1','read2']
+    left_line = pd.DataFrame(columns=read_column)
+    right_line = pd.DataFrame(columns=read_column)
+    line_read12 = pd.DataFrame(columns=read_column)
+
+    left_hervk = pd.DataFrame(columns=read_column)
+    right_hervk = pd.DataFrame(columns=read_column)
+    hervk_read12 = pd.DataFrame(columns=read_column)
+
+    left_svaa = pd.DataFrame(columns=read_column)
+    right_svaa = pd.DataFrame(columns=read_column)
+    svaa_read12 = pd.DataFrame(columns=read_column)
+
+    # For labeling all TEs in the chr18_smallest
+    # read csv file
+    if options.label_tes != None:
+        all_tes = pd.read_csv(options.label_tes, sep='\t', header=0)
+
+    # num of filterout out reads
+    filterout = 0
+    _LOG.info(f"Number of reads expected to be generated: {len(reads)}")
+
+    print(f'reference_id: {reference.id}, chrom: {chrom}, ref_start: {ref_start}')
+
+    _LOG.debug("Writing fastq(s) and optional tsam, if indicated")
+    t = time.time()
+
+    # Split the list of reads in num_of_cpus chuncks
+    avg = len(reads) /float(options.num_of_cpus)
+    chunks = []
+    last = 0.0
+    while last < len(reads):
+        chunks.append(reads[int(last): int(last + avg)])
+        last += avg
+
+    
+    with Pool(options.num_of_cpus) as pool:
+        results = pool.starmap(gen_reads_parallel, [(chunk, num, 
+                                                    all_tes, 
+                                                    reference, 
+                                                    reads_pickle, 
+                                                    error_model_1, 
+                                                    error_model_2, 
+                                                    mutation_model, 
+                                                    fraglen_model, 
+                                                    contig_variants, 
+                                                    temporary_directory, 
+                                                    targeted_regions, 
+                                                    discarded_regions, 
+                                                    options, 
+                                                    chrom, 
+                                                    ref_start) for (chunk, num) in zip(chunks, range(options.num_of_cpus))])
+    
+    chrom_fastq_r1_paired, chrom_fastq_r1_single, chrom_fastq_r2_paired, chrom_fastq_r2_single = map(list, zip(*results))
+
+    # Parallelize here
+    # temp_fq_r1_paired, temp_fq_r1_single, temp_fq_r2_paired, temp_fq_r2_single = \
+    #     gen_reads_parallel(reads, 
+    #                     1, 
+    #                     all_tes, 
+    #                     reference, 
+    #                     reads_pickle, 
+    #                     error_model_1, 
+    #                     error_model_2, 
+    #                     mutation_model, 
+    #                     fraglen_model, 
+    #                     contig_variants, 
+    #                     temporary_directory, 
+    #                     targeted_regions, 
+    #                     discarded_regions, 
+    #                     options, 
+    #                     chrom, 
+    #                     ref_start)
+    # chrom_fastq_r1_paired.extend(temp_fq_r1_paired)
+    # chrom_fastq_r1_single.extend(temp_fq_r1_single)
+    # chrom_fastq_r2_paired.extend(temp_fq_r2_paired)
+    # chrom_fastq_r2_single.extend(temp_fq_r2_single)
+
     _LOG.info(f"Number of reads filtered out: {filterout}")
     _LOG.info(f"Contig fastq(s) written in: {(time.time() - t)/60:.2f} m")
 
-    if options.produce_bam:
-        # this will give us the proper read order of the elements, for the sam. They are easier to sort now
-        properly_paired_reads = sorted(properly_paired_reads)
-        singletons = sorted(singletons)
-        sam_order = properly_paired_reads + singletons
+    # if options.produce_bam:
+    #     # this will give us the proper read order of the elements, for the sam. They are easier to sort now
+    #     properly_paired_reads = sorted(properly_paired_reads)
+    #     singletons = sorted(singletons)
+    #     sam_order = properly_paired_reads + singletons
 
-        with open_output(reads_pickle) as reads:
-            pickle.dump(sam_order, reads)
+    #     with open_output(reads_pickle) as reads:
+    #         pickle.dump(sam_order, reads)
 
-        if options.paired_ended:
-            _LOG.debug(f"Properly paired percentage = {len(properly_paired_reads)/len(sam_order)}")
+    #     if options.paired_ended:
+    #         _LOG.debug(f"Properly paired percentage = {len(properly_paired_reads)/len(sam_order)}")
 
-    _LOG.info(f"Finished sampling reads in {(time.time() - start_time)/60:.2f} m")
+    _LOG.info(f"Finished sampling reads in {(time.time() - start_time)/60:.2f} m")    
+    
     return chrom_fastq_r1_paired, chrom_fastq_r1_single, chrom_fastq_r2_paired, chrom_fastq_r2_single
