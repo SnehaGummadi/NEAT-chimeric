@@ -40,6 +40,8 @@ def cover_dataset(
     :param fragment_model: The fragment model used for to generate random fragment lengths
     """
 
+    read_len = options.read_len
+
     final_reads = set()
     # sanity check
     if span_length/fragment_model.fragment_mean < 5:
@@ -48,18 +50,25 @@ def cover_dataset(
     # precompute how many reads we want
     # The numerator is the total number of base pair calls needed.
     # Divide that by read length gives the number of reads needed
-    number_reads = ceil((span_length * options.coverage) / options.read_len)
+    number_reads = ceil((span_length * options.coverage) / read_len)
 
+    _LOG.info("Creating fragment pool.")
     # We use fragments to model the DNA
     fragment_pool = fragment_model.generate_fragments(number_reads * 3)
+    fragment_pool = deque(fragment_pool)
+
+    # keep fragments that need to be filtered out in a different list
+    discard_frags = []
 
     # step 1: Divide the span up into segments drawn from the fragment pool. Assign reads based on that.
     # step 2: repeat above until number of reads exceeds number_reads * 1.5
     # step 3: shuffle pool, then draw number_reads (or number_reads/2 for paired ended) reads to be our reads
     read_count = 0
     loop_count = 0
+
+    _LOG.info("Done creating fragment pool.")
     while read_count <= number_reads:
-        print(f'{read_count/number_reads:.2%}', end='\r')
+        #print(f'{read_count/number_reads:.2%}', end='\r')
         start = 0
         loop_count += 1
         # if loop_count > options.coverage * 100:
@@ -73,29 +82,30 @@ def cover_dataset(
         #     sys.exit(1)
         temp_fragments = []
         # trying to get enough variability to harden NEAT against edge cases.
+        # only happens 3 times for paired_150 chr18 x10
         if loop_count % 10 == 0:
-            fragment_model.rng.shuffle(fragment_pool)
+            fragment_model.rng.shuffle(list(fragment_pool))
+            fragment_pool = deque(fragment_pool)
         # Breaking the gename into fragments
+        cover_dataset_first_loop = 0
         while start < span_length:
             # We take the first element and put it back on the end to create an endless pool of fragments to draw from
-            fragment = fragment_pool.pop(0)
+            fragment = fragment_pool.popleft()
             end = min(start + fragment, span_length)
             # these are equivalent of reads we expect the machine to filter out, but we won't actually use it
-            if end - start < options.read_len:
-                # add some random flavor to try to keep it to falling into a loop
-                if fragment_model.rng.normal() < 0.5:
-                    fragment_pool.insert(len(fragment_pool)//2, fragment)
-                else:
-                    fragment_pool.insert(len(fragment_pool) - 3, fragment)
+            if end - start < read_len:
+                discard_frags.append(fragment)
             else:
                 fragment_pool.append(fragment)
                 temp_fragments.append((start, end))
             start = end
+            cover_dataset_first_loop += 1
 
+        _LOG.info(f"cover_dataset first while loop: {cover_dataset_first_loop}")
         # Generating reads from fragments
         for fragment in temp_fragments:
             read_start = fragment[0]
-            read_end = read_start + options.read_len
+            read_end = read_start + read_len
             # This filters out those small fragments, to give the dataset some realistic variety
             if read_end > fragment[1]:
                 continue
@@ -103,7 +113,7 @@ def cover_dataset(
                 read1 = (read_start, read_end)
                 if options.paired_ended:
                     # This will be valid because of the check above
-                    read2 = (fragment[1] - options.read_len, fragment[1])
+                    read2 = (fragment[1] - read_len, fragment[1])
                 else:
                     read2 = (0, 0)
                 # The structure for these reads will be (left_start, left_end, right_start, right_end)
@@ -113,7 +123,7 @@ def cover_dataset(
 
                 # sanity check that we haven't created an unrealistic read:
                 insert_size = read2[0] - read1[1]
-                if insert_size > 2 * options.read_len:
+                if insert_size > 2 * read_len:
                     # Probably an outlier fragment length. We'll just pitch one of the reads
                     # and consider it lost to the ages.
                     if fragment_model.rng.choice((True, False)):
@@ -130,7 +140,7 @@ def cover_dataset(
     # Now we shuffle them to add some randomness
     fragment_model.rng.shuffle(final_reads)
     # And only return the number we needed
-    _LOG.debug(f"Coverage required {loop_count} loops")
+    _LOG.info(f"Coverage required {loop_count} loops")
     if options.paired_ended:
         # Since each read is actually 2 reads, we only need to return half as many. But to cheat a few extra, we scale
         # that down slightly to 1.85 reads per read. This factor is arbitrary and may even be a function. But let's see
