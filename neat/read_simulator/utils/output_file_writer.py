@@ -291,8 +291,7 @@ class OutputFileWriter:
             # Next we add the strays (or all reads, for single-ended)
             for j in range(len(shuffled_singleton_keys)):
                 current_key = shuffled_singleton_keys[j]
-                chrom_name_with_rdnm = current_key.split("NEAT-generated_")[1].split('/')[0]
-                chrom_name = chrom_name_with_rdnm.split('_')[0]
+                chrom_name = current_key.split('_')[1] + '_' + current_key.split('_')[2]
                 read = fastq_index_dict[chrom_name][3][current_key]
                 SeqIO.write(read, fq1, 'fastq')
 

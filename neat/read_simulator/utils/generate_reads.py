@@ -392,7 +392,7 @@ def gen_reads_parallel(reads,
             elif options.label_tes is not None and properly_paired:
 
                 # Only label the TEs when we are generating for chromosome 18
-                if reference.id == 'chr1':
+                if reference.id == 'chr18':
                     # Create sub dataframe with the read1 and read2 start and ends in mind
                     sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] - 1 <= read_2.end_point)]
 
@@ -556,6 +556,44 @@ def gen_reads_parallel(reads,
                     error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
                 )
                 properly_paired_reads.append((read_1, read_2))
+
+            elif read1_is_singleton and options.label_tes != None:
+
+                # I am sorry for the redundancy
+                if reference.id == 'chr18':
+                    # Create sub dataframe with the read1 and read2 start and ends in mind
+                    sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] <= read_1.end_point)]
+
+                    for index,row in sub_df.iterrows():
+                        if(max(read_1.position,row['teStart']) <= min(read_1.end_point,row['teEnd'])):
+                            read_1.insertion_in_read = True
+                            if(read_1.position >= row['teStart'] and read_1.end_point <= row['teEnd']):
+                                span_1 = True
+                                read_1.name = f"{read_1.name[:-2]}-span/1"
+                            read_1.name = f"{read_1.name[:-2]}-{row['TE']}/1"
+
+                read_1.finalize_read_and_write(
+                    error_model_1, mutation_model, fq1_single, options.quality_offset, options.produce_fastq
+                )
+                singletons.append((read_1, None))
+            elif read2_is_singleton and options.label_tes != None:
+                if reference.id == 'chr18':
+                    # Create sub dataframe with the read1 and read2 start and ends in mind
+                    sub_df = all_tes.loc[(all_tes['teEnd'] >= read_2.position) & (all_tes['teStart'] <= read_2.end_point)]
+
+                    for index,row in sub_df.iterrows():
+                        if(max(read_2.position,row['teStart']) <= min(read_2.end_point,row['teEnd'])):
+                            read_2.insertion_in_read = True
+                            if(read_2.position >= row['teStart'] and read_2.end_point <= row['teEnd']):
+                                read_2.name = f"{read_2.name[:-2]}-span/2"
+                            read_2.name = f"{read_2.name[:-2]}-{row['TE']}/2"
+
+                read_2.finalize_read_and_write(
+                    error_model_2, mutation_model, fq2_single, options.quality_offset, options.produce_fastq
+                )
+                singletons.append((None, read_2))
+
+            
             elif read1_is_singleton:
                 # This will be the choice for all single-ended reads
                 singletons.append((read_1, None))
