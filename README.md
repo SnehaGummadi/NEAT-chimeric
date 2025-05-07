@@ -1,3 +1,172 @@
+# NEAT-chimeric
+This is a fork of the ncsa/NEAT to label reads with transposable elements present in each simulated read. The feature can be used for other genome features so long as the start and end coordinates are available. The function is useful for testing pipeline performance. There is also an options to create chimeric reads ([IGV Chimeric Reads](https://igv.org/doc/desktop/#UserGuide/tracks/alignments/chimeric_reads/)) at 3 specific genomic locations (look at make_chimeric option).
+
+This was developed by Sneha Arya Gummadi([@SnehaGummadi](https://github.com/SnehaGummadi)) and Alyssa Briggs ([@alyssa-ab](https://github.com/alyssa-ab)) from [The Functional Genomics Laboratory](https://taehoonkim.org/) at [The University of Texas at Dallas](https://www.utdallas.edu/)
+
+## Setting up:
+Be sure you have git installed and set up on your machine
+
+```shell
+git clone https://github.com/SnehaGummadi/NEAT-chimeric.git
+cd NEAT-chimeric
+```
+
+Be sure you have conda (miniconda or anaconda) installed and set up on your machine.
+
+```shell
+git checkout 4.2_dev_chimeric_reads
+conda env create -f environment.yml -n neat
+conda activate neat
+poetry install
+```
+All the conda dependencies required are in the environment.yml file. If for some reason, this fails, create neat environment and install dependencies one by one.
+
+## About chr18_smallest
+This is a shortened version of human chromosome 18 (GRCh38) spanning base pairs 1 to 12,000,000. Essentially the first 200,000 lines of the fasta file (excluding the fastq header: >chr18).
+
+## Available Options
+The testing.yml file contains all the available options.
+
+*Note on branches:* In the branches created in this fork, the function for the following features have been removed: adding errors and mutations to reads, polyploidy generation. Use the 4.2_dev_chimeric_reads and 4.2_single_end_reads for features. The dev_chimeric_reads branch is based on NEAT v(3.2) and does not have any fully developed functions like those in the 4.2 branches.
+
+### **label_tes:** 
+options are a file path or put: **label_tes: .**
+
+If a file path is given, it must be in the following format, separated by tabs and with the header:
+| TE | teStart | teEnd |
+| -- | ----- | --- |
+| <te_name> | <te_start> | <te_end> |
+
+This function labels read names based on whether there is a TE in the read (if paired, this will include information for both read 1 and read 2). Read names can look like this: 
+
+- @NEAT-generated_chr18_1184751-span1-in-read1-L1M3_dup6020-span2-in-read2-L1MA9_dup14858/1
+- @NEAT-generated_chr18_1184751-span1-in-read1-L1M3_dup6020-span2-in-read2-L1MA9_dup14858/2
+
+
+| Feature | Description |
+| :-------: | :-----------: |
+| /1 | read 1 |
+| /2 | read 2 |
+| -in-read1-\<TE> | TE is found in read 1 |
+| -in-read2-\<TE> | TE is found in read 2 |
+| -in-read-1-2=\<TE> | TE is found in both read 1 and 2 |
+| -span1 | Indicates the TE spans the length of read 1 |
+| -span2 | Indicates the TE spans the length of read 2 |
+
+If “-in-read1” appears more than once, this means that the TEs corresponding to the -in-read1 all appear in read 1. Same principle applies with read 2.
+
+**<ins>span<1,2> and read<1,2> will always be indicated before the TE that is being described.<ins>**
+
+Code is in NEAT-chimeric/neat/read-simulator/utils/generate_reads.py
+
+### **reference:** 
+The absolute path to the reference file in fasta format for the chromosomes you want to generate reads for
+
+### **read_len:** 
+option is an integer value for your read length
+
+### **coverage:** 
+The amount of coverage (like a form of sequencing depth) you want for the reads
+
+### **num_of_cpus:**
+The number of cpus available for use. The parallelization was done using python's multiprocessing library. This library does **not** support parallelizing across multiple nodes. If your HPC uses SLURM you can run `sinfo -N -l` to get a list of all the available nodes and their core count and memory availability. **Double check that the cpus allocated in the SLURM script match the number given in the config file! Otherwise errors and unexpected behavior may arise!** On UTD's Ganymede HPC these are the available nodes:
+
+| Node | Number of Cores/CPUs per Node | Memory per Node |
+| :--: | :---------------------------: | :-------------: |
+| normal | 16 cores | 32 GB |
+| genomics | 16 cores | 32 GB|
+| Kim | 12 cores | 128 GB |
+| 128s | 16 cores | 128 GB |
+| 256i | 20 cores | 256 GB |
+| 256h | 28 cores | 256 GB |
+
+### **ploidy:** 
+Set this to 1!!! 
+
+This function of polyploidy simulation has essentially been removed. Unless you fix this, leave it as 1.
+
+### **paired_end:** 
+Options are True and False. Whether you want to generate single (False) or paired-end (True) reads
+
+### **fragment_mean:** 
+A numerical value
+
+Reviewing different illumina documentation on library preparation, this snippet explains how fragment length is determine for paired-end reads:
+
+> "For example, a median fragment size of 300 bp (having a standard deviation of 30 bp or 10% variance) is required in the library generation protocol for paired 100 base reads. This would result in 99% of the fragments being >210 bp. Likewise, a median fragment size of 450 bp is needed for paired 150 bp reads."
+> https://nextgen.mgh.harvard.edu/attachments/Paired-End_SamplePrep_Guide_1005063_D.pdf
+
+So, to calculate the best fragment mean, use the following formula for paired end read simulation:
+
+$$\text{fragment\_mean} = \text{read\_len} \times 3$$
+
+### **fragment_st_dev:** 
+A numerical value.
+
+Based on the illumina recommendations, use the following formula for standard deviation:
+
+$$\text{fragment\_st\_dev} = \text{fragment\_mean} \times 0.1$$
+
+*Note on fragment_mean and fragment_st_dev:* Using these formulas, most correctly mirrors the selected coverage. 
+
+### **mutation_rate:** 
+A float value
+
+If make_chimeric is True and one of the default insertion is in the read, then no mutations or errors will be added to the read. 
+
+### **rng_seed:** 
+An integer value. 
+
+I recommend providing a seed value. One it helps you with debugging. Also, if you are performing some benchmarking, the reads across different read lengths and read types should have less variability.
+
+### **make_chimeric:** 
+options are True or False
+    
+If true, will by default make chimeric reads for the following locations in chr18_smallest:
+
+| TE | Start | End |
+| -- | ----- | --- |
+| line | 2573000 | 2579053 |
+| hervk | 3461053 | 3468589 |
+| svaa | 9152589 | 9153976 |
+
+Files: (NEAT-chimeric/neat/read-simulator/utils/generate_reads.py and gen_chim_reads.py) 
+
+## Running
+```shell
+cd /path/to/NEAT-chimeric
+conda activate neat
+neat read-simulator -c testing.yml -o sim_reads
+```
+
+If you are running on personal laptops, NEAT will run for at least an hour for x10 coverge. Use the nohup command so you do not have leave your terminal open:
+
+```shell
+cd /path/to/NEAT-chimeric
+conda activate neat
+nohup neat read-simulator -c testing.yml -o sim_reads &
+```
+
+## Debugging Problems
+
+Feel like the reads do not appear correctly generated? Here are some of the common issues:
+
+- For paired end reads, check that there are the same number of reads in the read1 and read2 files
+- Check that the coverage is correct with this formula:
+    - single end: $ \text{true\_coverage} = \frac{\text{num\_of\_reads} \times \text{read\_len}}{\text{chr\_len}}$
+    - paired end: $ \text{true\_coverage} = \frac{\text{num\_of\_reads} \times \text{read\_len} \times 2}{\text{chr\_len}}$
+    - chr_len should not include N bases that are typically listed at the start and end of chromosomes.
+- For paired end: Not generating enough reads? Double check that your fragment mean and standard deviation are set correctly. NEAT will discard reads when the number of bases between the end of read 1 to the start of read 2 is greater than read_len.
+- Still not sure what is wrong? Align the simulated reads against the chromosomes you used to generate the reads. Then upload it on UCSC custom tracks to visualize how well the reads cover the chromosomes.
+
+
+Any questions? Email me at sneha.a.gummadi@gmail.com (please include NEAT-chimeric in the subject)
+
+---
+
+Below is NEAT documentation
+
+
 # The NEAT Project v4.2
 Welcome to the NEAT project, the NExt-generation sequencing Analysis Toolkit, version 4.2. This release of NEAT includes several fixes and a little bit of restructuring. There is still lots of work to be done. See the [ChangeLog](ChangeLog.md) for notes. We have discarded the fasta file writing for now and removed that code. We may add that in as a feature in the future, if users call for it. We also removed GC bias for now. It severely complicated implementation, and had very few noticeable effects. After discussing with some people at the Illinois Institute for Genomic Biology, it sounded like GC bias may be a bit of a non-factor with improved chemistries. These will be reintroduced if needed/called for. 
 
