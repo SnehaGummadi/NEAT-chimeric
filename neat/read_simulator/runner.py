@@ -283,6 +283,7 @@ def read_simulator_runner(config: str, output: str):
 
     local_variant_files = {}
     fastq_files = []
+    fastq_files_lists = []
 
     sam_reads_files = []
 
@@ -342,7 +343,7 @@ def read_simulator_runner(config: str, output: str):
 
             for i in range(len(read1_fastq_paired)):
                 contig_temp_fastqs = ((read1_fastq_paired[i], read2_fastq_paired[i]), (read1_fastq_single[i], read2_fastq_single[i]))
-                fastq_files.append(contig_temp_fastqs)
+                fastq_files_lists.append(contig_temp_fastqs)
             if options.produce_bam:
                 sam_reads_files.append(local_bam_pickle_file)
 
@@ -356,7 +357,7 @@ def read_simulator_runner(config: str, output: str):
                       f"{', '.join([str(x) for x in output_file_writer.fastq_fns]).strip(', ')}")
         else:
             _LOG.info(f"Outputting fastq file: {output_file_writer.fastq_fns[0]}")
-        output_file_writer.merge_temp_fastqs(fastq_files, options.rng)
+        output_file_writer.merge_temp_fastqs(fastq_files_lists, options.rng)
 
     if options.produce_bam:
         _LOG.info(f"Outputting golden bam file: {str(output_file_writer.bam_fn)}")

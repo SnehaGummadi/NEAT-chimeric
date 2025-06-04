@@ -348,10 +348,13 @@ class Read:
             self.mapping_quality = 70
 
         if produce_fastq:
-            fastq_handle.write(f'@{self.name}\n')
-            fastq_handle.write(f'{str(self.read_sequence[:self.length])}\n')
-            fastq_handle.write('+\n')
-            fastq_handle.write(f'{self.read_quality_string}\n')
+            one_entry = f'@{self.name}\n{str(self.read_sequence[:self.length])}\n+\n{self.read_quality_string}\n'
+            # fastq_handle.write(f'@{self.name}\n')
+            # fastq_handle.write(f'{str(self.read_sequence[:self.length])}\n')
+            # fastq_handle.write('+\n')
+            # fastq_handle.write(f'{self.read_quality_string}\n')
+
+        return one_entry
 
     def convert_masking(self, error_model: SequencingErrorModel):
         """

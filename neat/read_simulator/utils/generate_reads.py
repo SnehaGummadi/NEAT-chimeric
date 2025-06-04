@@ -220,6 +220,12 @@ def gen_reads_parallel(reads,
     chrom_fastq_r2_paired = temporary_directory / f'{chrom}_{function_count}_r2_paired.fq.bgz'
     chrom_fastq_r2_single = temporary_directory / f'{chrom}_{function_count}_r2_single.fq.bgz'
 
+    # Arrays for memory efficient fastq writing
+    chrom_fastq_r1_paired_list = []
+    chrom_fastq_r2_paired_list = []
+    chrom_fastq_r1_single_list = []
+    chrom_fastq_r2_single_list = []
+
     # These will hold the values as inserted.
     properly_paired_reads = []
     singletons = []
@@ -380,12 +386,12 @@ def gen_reads_parallel(reads,
 
             # When we want to target a region to produce 
             if options.target_tes != None and options.label_tes == None and properly_paired:
-                read_1.finalize_read_and_write(
+                chrom_fastq_r1_paired_list.append(read_1.finalize_read_and_write(
                     error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-                )
-                read_2.finalize_read_and_write(
+                ))
+                chrom_fastq_r2_paired_list.append(read_2.finalize_read_and_write(
                     error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-                )
+                ))
                 properly_paired_reads.append((read_1, read_2))
 
             # When we want to label TEs in the reads only.
@@ -439,12 +445,12 @@ def gen_reads_parallel(reads,
                             read_1.name = f"{read_1.name[:-2]}-in-read-1-2-{row['TE']}/1"
                             read_2.name = f"{read_2.name[:-2]}-in-read-1-2-{row['TE']}/2"
 
-                read_1.finalize_read_and_write(
+                chrom_fastq_r1_paired_list.append(read_1.finalize_read_and_write(
                     error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-                )
-                read_2.finalize_read_and_write(
+                ))
+                chrom_fastq_r2_paired_list.append(read_2.finalize_read_and_write(
                     error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-                )
+                ))
                 properly_paired_reads.append((read_1, read_2))
 
             # When we only wanted to make chimeric reads (reads made chimeric labeled)
@@ -540,21 +546,21 @@ def gen_reads_parallel(reads,
                 # Send the reads to temp fastqs
                 # This is assuming that we require paired end reads otherwise will fail here
                 if sent_to_chimeric == False:
-                    read_1.finalize_read_and_write(
+                    chrom_fastq_r1_paired_list.append(read_1.finalize_read_and_write(
                         error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-                    )
-                    read_2.finalize_read_and_write(
+                    ))
+                    chrom_fastq_r2_paired_list.append(read_2.finalize_read_and_write(
                         error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-                    )
+                    ))
                     properly_paired_reads.append((read_1, read_2))
             
             elif properly_paired:
-                read_1.finalize_read_and_write(
+                chrom_fastq_r1_paired_list.append(read_1.finalize_read_and_write(
                     error_model_1, mutation_model, fq1_paired, options.quality_offset, options.produce_fastq
-                )
-                read_2.finalize_read_and_write(
+                ))
+                chrom_fastq_r2_paired_list.append(read_2.finalize_read_and_write(
                     error_model_2, mutation_model, fq2_paired, options.quality_offset, options.produce_fastq
-                )
+                ))
                 properly_paired_reads.append((read_1, read_2))
 
             elif read1_is_singleton and options.label_tes != None:
@@ -572,9 +578,9 @@ def gen_reads_parallel(reads,
                                 read_1.name = f"{read_1.name[:-2]}-span/1"
                             read_1.name = f"{read_1.name[:-2]}-{row['TE']}/1"
 
-                read_1.finalize_read_and_write(
+                chrom_fastq_r1_single_list.append(read_1.finalize_read_and_write(
                     error_model_1, mutation_model, fq1_single, options.quality_offset, options.produce_fastq
-                )
+                ))
                 singletons.append((read_1, None))
             elif read2_is_singleton and options.label_tes != None:
                 if reference.id == 'chr18':
@@ -588,9 +594,9 @@ def gen_reads_parallel(reads,
                                 read_2.name = f"{read_2.name[:-2]}-span/2"
                             read_2.name = f"{read_2.name[:-2]}-{row['TE']}/2"
 
-                read_2.finalize_read_and_write(
+                chrom_fastq_r2_single_list.append(read_2.finalize_read_and_write(
                     error_model_2, mutation_model, fq2_single, options.quality_offset, options.produce_fastq
-                )
+                ))
                 singletons.append((None, read_2))
 
             
@@ -710,7 +716,7 @@ def gen_reads_parallel(reads,
     _LOG.info(f"Completed chunk number: {function_count}, making {len(properly_paired_reads)}, which filtered out {filterout} reads")
     _LOG.info(f"In chunck {function_count}: r1 singltons = {r1_singleton_read_count} and r2 singletons = {r2_singleton_read_count}")
 
-    return chrom_fastq_r1_paired, chrom_fastq_r1_single, chrom_fastq_r2_paired, chrom_fastq_r2_single
+    return chrom_fastq_r1_paired_list, chrom_fastq_r1_single_list, chrom_fastq_r2_paired_list, chrom_fastq_r2_single_list
 
 def generate_reads(reference: SeqRecord,
                    reads_pickle: str,

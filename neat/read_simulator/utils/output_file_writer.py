@@ -14,6 +14,7 @@ import time
 from struct import pack
 import logging
 import pickle
+import random
 
 from Bio import bgzf
 from Bio import SeqIO
@@ -211,89 +212,125 @@ class OutputFileWriter:
             paired_files.append(paired_file_names)
             singleton_files.append(singleton_file_names)
         
-        _LOG.info(f"fastq_files = {fastq_files}")
+        #_LOG.info(f"fastq_files = {len(fastq_files)}")
 
-        # Index the temp paired-ended fastqs
-        for file_pair in paired_files:
-            file1_index = SeqIO.index(str(file_pair[0]), 'fastq')
-            file2_index = SeqIO.index(str(file_pair[1]), 'fastq')
+        # list for all records
+        all_pe_r1 = []
+        all_pe_r2 = []
+        all_se = []
 
-            # Reconstruct the name of the reads
-            contig_name = Path(file_pair[0]).name.split('_r')[0]
-            # Either both will have data, or neither, so checking one is sufficient
-            if file1_index:
-                if contig_name not in fastq_index_dict:
-                    fastq_index_dict[contig_name] = {}
-                # 1 and 2 for read 1 and read 2
-                fastq_index_dict[contig_name] = {1: file1_index, 2: file2_index}
-                paired_keys.extend(list(zip(file1_index, file2_index)))
+        if self.paired:
+            # combine the list with the fastq records for paired
+            for r1, r2 in paired_files:
+                all_pe_r1.extend(r1)
+                all_pe_r2.extend(r2)
 
-        _LOG.info(f"fastq_index_dict keys = {fastq_index_dict.keys()}")
+            # shuffle the fastq records
+            paired = list(zip(r1,r2))
+            random.seed(self.options.rng_seed)
+            random.shuffle(paired)
 
-        # Index the singletons, or for single-ended reads, all reads
-        for file_pair in singleton_files:
-            file_index_r1 = SeqIO.index(str(file_pair[0]), 'fastq')
-            file_index_r2 = SeqIO.index(str(file_pair[1]), 'fastq')
-            if file_index_r1:
-                file_index = file_index_r1
-                contig_name = Path(file_pair[0]).name.split('_r')[0]
-            elif file_index_r2:
-                file_index = file_index_r2
-                contig_name = Path(file_pair[1]).name.split('_r')[0]
-            else:
-                # No singletons for this contig, so move on
-                continue
+            # Write the files to fastq.gz files
+            with gzip.open(self.fastq1_fn, "wt") as f1, gzip.open(self.fastq2_fn, "wt") as f2:
+                for rec1, rec2 in paired:
+                    f1.write(rec1)
+                    f2.write(rec2)
+        else:
+            # Combine the lists with single end reads
+            for r1, r2 in singleton_files:
+                all_se.extend(r1)
+                all_se.extend(r2)
 
-            if contig_name not in fastq_index_dict:
-                fastq_index_dict[contig_name] = {}
-            # To keep the data structure consistent, we point both keys at the same file
-            fastq_index_dict[contig_name][3] = file_index
-            singleton_keys.extend(list(file_index))
+            # Shuffle the single end reads
+            random.seed(self.options.rng_seed)
+            random.shuffle(all_se)
 
-        shuffled_paired_keys = paired_keys.copy()
-        shuffled_singleton_keys = singleton_keys.copy()
-        # Shuffle the keys
-        rand_num_gen.shuffle(shuffled_paired_keys)
-        rand_num_gen.shuffle(shuffled_singleton_keys)
+            # Write the files to the fastq.gz file
+            with gzip.open(self.fastq1_fn, "wt") as f1:
+                for rec in all_se:
+                    f1.write(rec)
 
-        # So we can delete later
-        wrote_r2 = False
-        with (
-            open_output(self.fastq1_fn) as fq1,
-            open_output(self.fastq2_fn) as fq2
-        ):
-            # First we add all properly paired reads
-            num_reads = len(shuffled_paired_keys)
-            for i in range(num_reads):
-                if i % 100000 == 0:
-                    _LOG.info(f'{i/num_reads:.2%}')
-                current_key = shuffled_paired_keys[i]
+        # # Index the temp paired-ended fastqs
+        # for file_pair in paired_files:
+        #     file1_index = SeqIO.index(str(file_pair[0]), 'fastq')
+        #     file2_index = SeqIO.index(str(file_pair[1]), 'fastq')
 
-                if self.options.target_tes is not None:
-                    if 'chr18' in current_key[0]:
-                        chrom_name = 'chr18'
-                    else:
-                        # reconstruct tho chromosome name
-                        chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
-                        chrom_name = chrom_name_with_rdnm.split('_')[0].split('_')[1]
-                else:
-                    chrom_name = current_key[0]
-                    chrom_name = chrom_name.split('_')[1] + '_' + chrom_name.split('_')[2]
-                # 1 here because this is read1
-                read1 = fastq_index_dict[chrom_name][1][current_key[0]]
-                SeqIO.write(read1, fq1, 'fastq')
-                # 2 for read2
-                read2 = fastq_index_dict[chrom_name][2][current_key[1]]
-                SeqIO.write(read2, fq2, 'fastq')
-                if not wrote_r2:
-                    wrote_r2 = True
+        #     # Reconstruct the name of the reads
+        #     contig_name = Path(file_pair[0]).name.split('_r')[0]
+        #     # Either both will have data, or neither, so checking one is sufficient
+        #     if file1_index:
+        #         if contig_name not in fastq_index_dict:
+        #             fastq_index_dict[contig_name] = {}
+        #         # 1 and 2 for read 1 and read 2
+        #         fastq_index_dict[contig_name] = {1: file1_index, 2: file2_index}
+        #         paired_keys.extend(list(zip(file1_index, file2_index)))
 
-            # Next we add the strays (or all reads, for single-ended)
-            for j in range(len(shuffled_singleton_keys)):
-                current_key = shuffled_singleton_keys[j]
-                chrom_name = current_key.split('_')[1] + '_' + current_key.split('_')[2]
-                read = fastq_index_dict[chrom_name][3][current_key]
-                SeqIO.write(read, fq1, 'fastq')
+        # _LOG.info(f"fastq_index_dict keys = {fastq_index_dict.keys()}")
+
+        # # Index the singletons, or for single-ended reads, all reads
+        # for file_pair in singleton_files:
+        #     file_index_r1 = SeqIO.index(str(file_pair[0]), 'fastq')
+        #     file_index_r2 = SeqIO.index(str(file_pair[1]), 'fastq')
+        #     if file_index_r1:
+        #         file_index = file_index_r1
+        #         contig_name = Path(file_pair[0]).name.split('_r')[0]
+        #     elif file_index_r2:
+        #         file_index = file_index_r2
+        #         contig_name = Path(file_pair[1]).name.split('_r')[0]
+        #     else:
+        #         # No singletons for this contig, so move on
+        #         continue
+
+        #     if contig_name not in fastq_index_dict:
+        #         fastq_index_dict[contig_name] = {}
+        #     # To keep the data structure consistent, we point both keys at the same file
+        #     fastq_index_dict[contig_name][3] = file_index
+        #     singleton_keys.extend(list(file_index))
+
+        # shuffled_paired_keys = paired_keys.copy()
+        # shuffled_singleton_keys = singleton_keys.copy()
+        # # Shuffle the keys
+        # rand_num_gen.shuffle(shuffled_paired_keys)
+        # rand_num_gen.shuffle(shuffled_singleton_keys)
+
+        # # So we can delete later
+        # wrote_r2 = False
+        # with (
+        #     open_output(self.fastq1_fn) as fq1,
+        #     open_output(self.fastq2_fn) as fq2
+        # ):
+        #     # First we add all properly paired reads
+        #     num_reads = len(shuffled_paired_keys)
+        #     for i in range(num_reads):
+        #         if i % 100000 == 0:
+        #             _LOG.info(f'{i/num_reads:.2%}')
+        #         current_key = shuffled_paired_keys[i]
+
+        #         if self.options.target_tes is not None:
+        #             if 'chr18' in current_key[0]:
+        #                 chrom_name = 'chr18'
+        #             else:
+        #                 # reconstruct tho chromosome name
+        #                 chrom_name_with_rdnm = current_key[0].removeprefix("NEAT-generated_").split('/')[0]
+        #                 chrom_name = chrom_name_with_rdnm.split('_')[0].split('_')[1]
+        #         else:
+        #             chrom_name = current_key[0]
+        #             chrom_name = chrom_name.split('_')[1] + '_' + chrom_name.split('_')[2]
+        #         # 1 here because this is read1
+        #         read1 = fastq_index_dict[chrom_name][1][current_key[0]]
+        #         SeqIO.write(read1, fq1, 'fastq')
+        #         # 2 for read2
+        #         read2 = fastq_index_dict[chrom_name][2][current_key[1]]
+        #         SeqIO.write(read2, fq2, 'fastq')
+        #         if not wrote_r2:
+        #             wrote_r2 = True
+
+        #     # Next we add the strays (or all reads, for single-ended)
+        #     for j in range(len(shuffled_singleton_keys)):
+        #         current_key = shuffled_singleton_keys[j]
+        #         chrom_name = current_key.split('_')[1] + '_' + current_key.split('_')[2]
+        #         read = fastq_index_dict[chrom_name][3][current_key]
+        #         SeqIO.write(read, fq1, 'fastq')
 
         _LOG.info(f"Fastq(s) written in {(time.time() - t)/60:.2f} m")
 
