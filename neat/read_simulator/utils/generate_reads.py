@@ -730,6 +730,7 @@ def generate_reads(reference: SeqRecord,
                    discarded_regions: list,
                    options: Options,
                    chrom: str,
+                   all_tes: pd.DataFrame,
                    ref_start: int = 0
                    ) -> tuple:
     """
@@ -803,11 +804,6 @@ def generate_reads(reference: SeqRecord,
     left_svaa = pd.DataFrame(columns=read_column)
     right_svaa = pd.DataFrame(columns=read_column)
     svaa_read12 = pd.DataFrame(columns=read_column)
-
-    # For labeling all TEs in the chr18_smallest
-    # read csv file
-    if options.label_tes != None:
-        all_tes = pd.read_csv(options.label_tes, sep='\t', header=0)
 
     # num of filterout out reads
     filterout = 0

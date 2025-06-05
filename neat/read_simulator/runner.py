@@ -287,7 +287,20 @@ def read_simulator_runner(config: str, output: str):
 
     sam_reads_files = []
 
+    if options.label_tes != None:
+        # Read bed file with te locations
+        all_te_locs = pd.read_csv(options.label_tes, sep='\t', header=0)
+
     for contig in breaks:
+
+        if options.label_tes != None:
+            # Extract only the TE locs for the current contig (aka chromosome)
+            current_te_locs = all_te_locs[all_te_locs['chr'] == contig]
+            # Sort by start index
+            current_te_locs = current_te_locs.sort_values(by='teStart', ascending=True)
+        else:
+            current_te_locs = pd.DataFrame()
+
         local_variant_files[contig] = None
 
         _LOG.info(f"Generating variants for {contig}")
@@ -339,7 +352,8 @@ def read_simulator_runner(config: str, output: str):
                                target_regions_dict[contig],
                                discard_regions_dict[contig],
                                options,
-                               contig)
+                               contig,
+                               current_te_locs)
 
             for i in range(len(read1_fastq_paired)):
                 contig_temp_fastqs = ((read1_fastq_paired[i], read2_fastq_paired[i]), (read1_fastq_single[i], read2_fastq_single[i]))
