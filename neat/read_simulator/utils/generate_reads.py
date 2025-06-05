@@ -398,7 +398,7 @@ def gen_reads_parallel(reads,
             elif options.label_tes is not None and properly_paired:
 
                 # Only label the TEs when we are generating for chromosome 18
-                if reference.id == 'chr18':
+                if 'chr' in reference.id:
                     # Create sub dataframe with the read1 and read2 start and ends in mind
                     sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] - 1 <= read_2.end_point)]
 
@@ -566,7 +566,7 @@ def gen_reads_parallel(reads,
             elif read1_is_singleton and options.label_tes != None:
 
                 # I am sorry for the redundancy
-                if reference.id == 'chr18':
+                if 'chr' in reference.id:
                     # Create sub dataframe with the read1 and read2 start and ends in mind
                     sub_df = all_tes.loc[(all_tes['teEnd'] >= read_1.position) & (all_tes['teStart'] <= read_1.end_point)]
 
@@ -583,7 +583,7 @@ def gen_reads_parallel(reads,
                 ))
                 singletons.append((read_1, None))
             elif read2_is_singleton and options.label_tes != None:
-                if reference.id == 'chr18':
+                if 'chr' in reference.id:
                     # Create sub dataframe with the read1 and read2 start and ends in mind
                     sub_df = all_tes.loc[(all_tes['teEnd'] >= read_2.position) & (all_tes['teStart'] <= read_2.end_point)]
 
