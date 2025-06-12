@@ -226,7 +226,7 @@ class OutputFileWriter:
                 all_pe_r2.extend(r2)
 
             # shuffle the fastq records
-            paired = list(zip(r1,r2))
+            paired = list(zip(all_pe_r1,all_pe_r2))
             random.seed(self.options.rng_seed)
             random.shuffle(paired)
 
