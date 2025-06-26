@@ -15,6 +15,7 @@ from struct import pack
 import logging
 import pickle
 import random
+import subprocess
 
 from Bio import bgzf
 from Bio import SeqIO
@@ -62,6 +63,24 @@ def reg2bin(beg: int, end: int):
         return ((1 << 3) - 1) // 7 + (beg >> 26)
     return 0
 
+def check_pigz_install():
+    try:
+        subprocess.run(["pigz", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        _LOG.info("pigz is installed and ready to use.")
+        return True
+    except FileNotFoundError:
+        _LOG.info("pigz is not installed. Please install it to use this functionality. Files will not be gzipped.")
+        return False
+    except subprocess.CalledProcessError as e:
+        _LOG.info(f"pigz is found but returned an error: {e.stderr.decode().strip()}")
+        return False
+    
+def compress_file_with_pigz(threads, input_file):
+    try:
+        subprocess.run(["pigz", "-p", str(threads), input_file], check=True)
+        _LOG.info(f"{input_file} compressed successfully")
+    except subprocess.CalledProcessError as e:
+        _LOG.info(f"ERROR during compression: {e}")
 
 class OutputFileWriter:
     """
@@ -98,13 +117,13 @@ class OutputFileWriter:
         # Set up filenames based on booleans
         files_to_write = []
         if self.paired and self.write_fastq:
-            self.fastq1_fn = options.output.parent / f'{options.output.stem}_r1.fastq.gz'
-            self.fastq2_fn = options.output.parent / f'{options.output.stem}_r2.fastq.gz'
+            self.fastq1_fn = options.output.parent / f'{options.output.stem}_r1.fastq'
+            self.fastq2_fn = options.output.parent / f'{options.output.stem}_r2.fastq'
             self.fastq_fns = [self.fastq1_fn, self.fastq2_fn]
             files_to_write.extend(self.fastq_fns)
         elif self.write_fastq:
-            self.fastq1_fn = options.output.parent / f'{options.output.stem}.fastq.gz'
-            self.fastq2_fn = options.output.parent / "dummy.fastq.gz"
+            self.fastq1_fn = options.output.parent / f'{options.output.stem}.fastq'
+            self.fastq2_fn = options.output.parent / "dummy.fastq"
             self.fastq_fns = [self.fastq1_fn, self.fastq2_fn]
             files_to_write.extend(self.fastq_fns)
         if self.write_bam:
@@ -230,11 +249,24 @@ class OutputFileWriter:
             random.seed(self.options.rng_seed)
             random.shuffle(paired)
 
+            _LOG.info("Completed shuffling paired records.")
+
+            all_pe_r1, all_pe_r2 = zip(*paired)
+
             # Write the files to fastq.gz files
-            with gzip.open(self.fastq1_fn, "wt") as f1, gzip.open(self.fastq2_fn, "wt") as f2:
-                for rec1, rec2 in paired:
-                    f1.write(rec1)
-                    f2.write(rec2)
+            with open(self.fastq1_fn, "wt") as f1:
+                f1.writelines(all_pe_r1)
+                
+            with open(self.fastq2_fn, "wt") as f2:
+                f2.writelines(all_pe_r2)
+
+            _LOG.info("Completed file writing.")
+
+            # gzip files using pigz aftering checking that pigz is available
+            if check_pigz_install():
+                compress_file_with_pigz(self.options.num_of_cpus, self.fastq1_fn)
+                compress_file_with_pigz(self.options.num_of_cpus, self.fastq2_fn)
+
         else:
             # Combine the lists with single end reads
             for r1, r2 in singleton_files:
@@ -245,10 +277,18 @@ class OutputFileWriter:
             random.seed(self.options.rng_seed)
             random.shuffle(all_se)
 
+            _LOG.info("Completed shuffling single records")
+
             # Write the files to the fastq.gz file
-            with gzip.open(self.fastq1_fn, "wt") as f1:
-                for rec in all_se:
-                    f1.write(rec)
+            with open(self.fastq1_fn, "wt") as f1:
+                f1.writelines(all_se)
+
+            _LOG.info("Completed file writing.")
+
+            # gzip files using pigz after checking if pigz is available. 
+            if check_pigz_install():
+                compress_file_with_pigz(self.options.num_of_cpus, self.fastq1_fn)
+
 
         # # Index the temp paired-ended fastqs
         # for file_pair in paired_files:
